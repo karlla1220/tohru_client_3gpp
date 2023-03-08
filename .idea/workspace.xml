@@ -10,6 +10,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9fd1db26-769d-46a7-877c-7e22bbbe0212" name="Changes" comment="First version working">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/main.dart" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -20,6 +21,14 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
     <option name="WARN_ABOUT_CRLF" value="false" />
+  </component>
+  <component name="GithubPullRequestsUISettings">
+    <option name="selectedUrlAndAccountId">
+      <UrlAndAccount>
+        <option name="accountId" value="05d57c79-f7a6-4605-bd26-ba5ac99cb63d" />
+        <option name="url" value="https://github.com/karlla1220/tohru_client_3gpp.git" />
+      </UrlAndAccount>
+    </option>
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -129,6 +138,8 @@
       <configuration name="FlutterRunConfigurationType">
         <watch expression="kDebugMode" language="Dart" />
         <watch expression="handStatus" language="Dart" />
+        <watch expression="this._prefix" language="Dart" />
+        <watch expression="this._selectedOption" language="Dart" />
       </configuration>
     </watches-manager>
   </component>

@@ -181,64 +181,6 @@ class _MyPageState extends State<MyPage> {
                   .toList() +
               <Widget>[
                 const Divider(),
-                // ListTile(
-                //   // leading: Icon(Icons.person_sharp),
-                //   leading: Row(
-                //     mainAxisSize: MainAxisSize.min,
-                //     children: const <Widget>[
-                //       Icon(Icons.edit),
-                //       SizedBox(width: 8.0),
-                //       Icon(Icons.person),
-                //     ],
-                //   ),
-                //   title: const Text('Set User Name'),
-                //   onTap: () {
-                //     // Go to configure page for Person
-                //     //
-                //     showDialog(
-                //       context: context,
-                //       builder: (BuildContext context) {
-                //         final userNameController =
-                //             TextEditingController(text: userName);
-                //         return AlertDialog(
-                //           title: const Text("Set User Name"),
-                //           content: TextFormField(
-                //             controller: userNameController,
-                //             // initialValue: userName,
-                //             autofocus: true,
-                //             decoration: const InputDecoration(
-                //               labelText: "User Name",
-                //               hintText: "Enter your user name",
-                //             ),
-                //             onFieldSubmitted: (value) {
-                //               setState(() {
-                //                 userName = value;
-                //               });
-                //               Navigator.pop(context);
-                //             },
-                //           ),
-                //           actions: <Widget>[
-                //             ElevatedButton(
-                //               child: const Text("Set"),
-                //               onPressed: () {
-                //                 setState(() {
-                //                   userName = userNameController.text;
-                //                 });
-                //                 Navigator.pop(context);
-                //               },
-                //             ),
-                //             TextButton(
-                //               child: const Text("Cancel"),
-                //               onPressed: () {
-                //                 Navigator.pop(context);
-                //               },
-                //             ),
-                //           ],
-                //         );
-                //       },
-                //     );
-                //   },
-                // ),
 
                 ListTile(
                   leading: Row(
@@ -256,74 +198,78 @@ class _MyPageState extends State<MyPage> {
                       context: context,
                       builder: (BuildContext context) {
                         final userNameController =
-                            TextEditingController(text: userName);
-                        return AlertDialog(
-                          title: const Text("Set User Name"),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              RadioListTile(
-                                title: const Text('F2F'),
-                                value: 'F2F',
-                                groupValue: _selectedOption,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedOption = value!;
-                                    if (kDebugMode) {
-                                      print("${_selectedOption}is selected!");
-                                    }
-                                    _prefix = '[F]';
-                                  });
-                                },
+                        TextEditingController(text: userName);
+                        return StatefulBuilder(
+                          builder: (BuildContext context, setState) {
+                            return AlertDialog(
+                              title: const Text("Set User Name"),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  RadioListTile(
+                                    title: const Text('F2F'),
+                                    value: 'F2F',
+                                    groupValue: _selectedOption,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _selectedOption = value!;
+                                        if (kDebugMode) {
+                                          print("${_selectedOption} is selected!");
+                                        }
+                                        _prefix = '[F]';
+                                      });
+                                    },
+                                  ),
+                                  RadioListTile(
+                                    title: const Text('Remote'),
+                                    value: 'Remote',
+                                    groupValue: _selectedOption,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _selectedOption = value!;
+                                        if (kDebugMode) {
+                                          print("${_selectedOption} is selected!");
+                                        }
+                                        _prefix = '[R]';
+                                      });
+                                    },
+                                  ),
+                                  TextFormField(
+                                    controller: userNameController,
+                                    autofocus: true,
+                                    decoration: InputDecoration(
+                                      labelText: "User Name",
+                                      hintText: "Enter your user name",
+                                      prefixText: _prefix,
+                                    ),
+                                    onFieldSubmitted: (value) {
+                                      setState(() {
+                                        userName = value;
+                                      });
+                                      Navigator.pop(context);
+                                    },
+                                  ),
+                                ],
                               ),
-                              RadioListTile(
-                                title: const Text('Remote'),
-                                value: 'Remote',
-                                groupValue: _selectedOption,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _selectedOption = value!;
-                                    if (kDebugMode) {
-                                      print("${_selectedOption}is selected!");
-                                    }
-                                    _prefix = '[R]';
-                                  });
-                                },
-                              ),
-                              TextFormField(
-                                controller: userNameController,
-                                autofocus: true,
-                                decoration: InputDecoration(
-                                  labelText: "User Name",
-                                  hintText: "Enter your user name",
-                                  prefixText: _prefix,
+                              actions: <Widget>[
+                                ElevatedButton(
+                                  child: const Text("Set"),
+                                  onPressed: () {
+                                    setState(() {
+                                      userName = userNameController.text;
+                                    });
+                                    Navigator.pop(context);
+                                  },
                                 ),
-                                onFieldSubmitted: (value) {
-                                  setState(() {
-                                    userName = value;
-                                  });
-                                  Navigator.pop(context);
-                                },
-                              ),
-                            ],
-                          ),
-                          actions: <Widget>[
-                            ElevatedButton(
-                              child: const Text("Set"),
-                              onPressed: () {
-                                setState(() {
-                                  userName = _prefix + userNameController.text;
-                                });
-                                Navigator.pop(context);
-                              },
-                            ),
-                            TextButton(
-                              child: const Text("Cancel"),
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
-                            ),
-                          ],
+                                TextButton(
+                                  child: const Text("Cancel"),
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              ],
+                            );
+                          },
                         );
                       },
                     );
@@ -441,7 +387,7 @@ class _MyPageState extends State<MyPage> {
     if (loginNecessary == true) {
       webViewController.runJavaScript('''
             document.getElementById("meetingfield").value ="${room.name}";
-            document.getElementById("namefield").value ="$userName";
+            document.getElementById("namefield").value ="${_prefix} ${userName}";
             WelcomeScreen.join();
             ''');
       currentMeetingRoom = room;
@@ -508,6 +454,22 @@ class _MyPageState extends State<MyPage> {
     }
   }
 }
+
+class UserNameConfigWidget extends StatefulWidget {
+  const UserNameConfigWidget({Key? key}) : super(key: key);
+
+  @override
+  State<UserNameConfigWidget> createState() => _UserNameConfigWidgetState();
+}
+
+class _UserNameConfigWidgetState extends State<UserNameConfigWidget> {
+  @override
+  Widget build(BuildContext context) {
+    return const Placeholder();
+  }
+}
+
+
 
 class MeetingRoomsConfigWidget extends StatefulWidget {
   final List<MeetingRoom> rooms;
