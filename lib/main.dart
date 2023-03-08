@@ -38,6 +38,7 @@ final scaffoldKey = GlobalKey<ScaffoldState>();
 
 class _MyPageState extends State<MyPage> {
   bool _isLoading = false;
+  int _progress = 0;
   MeetingRoom currentMeetingRoom = MeetingRoom(name: "None");
   int _selectedIndex = 0;
   List<MeetingRoom> rooms = <MeetingRoom>[
@@ -47,7 +48,9 @@ class _MyPageState extends State<MyPage> {
     MeetingRoom(name: "RAN1_Off1"),
     MeetingRoom(name: "RAN1_Off2"),
   ];
-  String userName = "LG - Duckhyun Bae";
+  late String userName;
+  late String _prefix;
+  late String _selectedOption;
 
   late final WebViewController webViewController;
   // Completer webViewCompleter =  Completer();
@@ -55,30 +58,49 @@ class _MyPageState extends State<MyPage> {
   @override
   void initState() {
     super.initState();
+    userName = "LG - Duckhyun Bae";
+    _prefix = '[F]';
+    _selectedOption = 'F2F';
 
     webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..enableZoom(true)
-      ..setBackgroundColor(const Color(0x00000000))
+      // ..setBackgroundColor(const Color(0x00000000))
+      // ..setBackgroundColor(Colors.white)
       ..setNavigationDelegate(
         NavigationDelegate(
           onProgress: (int progress) {
             // Update loading bar.
+            setState(() {
+              _progress = progress;
+            });
           },
           onPageStarted: (String url) async {
             // Set false if the page finished loading.
+            if (kDebugMode) {
+              print("Start to load Webpage");
+            }
             setState(() => {_isLoading = true});
             // webViewCompleter =  Completer();
           },
           onPageFinished: (String url) async {
             // Set true if the page finished loading.
+            if (kDebugMode) {
+              print("Finish to load Webpage");
+            }
             setState(() => {_isLoading = false});
             // webViewCompleter.complete();
           },
           onWebResourceError: (WebResourceError error) {},
           onNavigationRequest: (NavigationRequest request) {
-            if (request.url.startsWith('https://tohru.3gpp.org')) {
+            if (!request.url.startsWith('https://tohru.3gpp.org')) {
+              if (kDebugMode) {
+                print("Stop to URL");
+              }
               return NavigationDecision.prevent;
+            }
+            if (kDebugMode) {
+              print("go to URL");
             }
             return NavigationDecision.navigate;
           },
@@ -96,12 +118,32 @@ class _MyPageState extends State<MyPage> {
   //   }
   // }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: scaffoldKey,
-      body: WebViewWidget(controller: webViewController),
+      // appBar: AppBar(),
+      body: Container(
+        //safeArea Color
+        color: Colors.black,
+        child: SafeArea(
+          child: Container(
+              color: Colors.white,
+              child: Column(
+                children: [
+                  Visibility(
+                    visible: _isLoading,
+                    child: LinearProgressIndicator(
+                      color: Colors.red,
+                      // minHeight: 10,
+                      value: _progress / 100,
+                    ),
+                  ),
+                  Expanded(child: WebViewWidget(controller: webViewController)),
+                ],
+              )),
+        ),
+      ),
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -134,14 +176,71 @@ class _MyPageState extends State<MyPage> {
                           inputMeetingAndName(room);
                           // await _waitWebView();
                           applyMeetingRoomStatus();
-
                         },
                       ))
                   .toList() +
               <Widget>[
                 const Divider(),
+                // ListTile(
+                //   // leading: Icon(Icons.person_sharp),
+                //   leading: Row(
+                //     mainAxisSize: MainAxisSize.min,
+                //     children: const <Widget>[
+                //       Icon(Icons.edit),
+                //       SizedBox(width: 8.0),
+                //       Icon(Icons.person),
+                //     ],
+                //   ),
+                //   title: const Text('Set User Name'),
+                //   onTap: () {
+                //     // Go to configure page for Person
+                //     //
+                //     showDialog(
+                //       context: context,
+                //       builder: (BuildContext context) {
+                //         final userNameController =
+                //             TextEditingController(text: userName);
+                //         return AlertDialog(
+                //           title: const Text("Set User Name"),
+                //           content: TextFormField(
+                //             controller: userNameController,
+                //             // initialValue: userName,
+                //             autofocus: true,
+                //             decoration: const InputDecoration(
+                //               labelText: "User Name",
+                //               hintText: "Enter your user name",
+                //             ),
+                //             onFieldSubmitted: (value) {
+                //               setState(() {
+                //                 userName = value;
+                //               });
+                //               Navigator.pop(context);
+                //             },
+                //           ),
+                //           actions: <Widget>[
+                //             ElevatedButton(
+                //               child: const Text("Set"),
+                //               onPressed: () {
+                //                 setState(() {
+                //                   userName = userNameController.text;
+                //                 });
+                //                 Navigator.pop(context);
+                //               },
+                //             ),
+                //             TextButton(
+                //               child: const Text("Cancel"),
+                //               onPressed: () {
+                //                 Navigator.pop(context);
+                //               },
+                //             ),
+                //           ],
+                //         );
+                //       },
+                //     );
+                //   },
+                // ),
+
                 ListTile(
-                  // leading: Icon(Icons.person_sharp),
                   leading: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: const <Widget>[
@@ -151,36 +250,69 @@ class _MyPageState extends State<MyPage> {
                     ],
                   ),
                   title: const Text('Set User Name'),
+                  subtitle: const Text('Select an option'),
                   onTap: () {
-                    // Go to configure page for Person
-                    //
                     showDialog(
                       context: context,
                       builder: (BuildContext context) {
-                        final userNameController = TextEditingController(text: userName);
+                        final userNameController =
+                            TextEditingController(text: userName);
                         return AlertDialog(
                           title: const Text("Set User Name"),
-                          content: TextFormField(
-                            controller: userNameController,
-                            // initialValue: userName,
-                            autofocus: true,
-                            decoration: const InputDecoration(
-                              labelText: "User Name",
-                              hintText: "Enter your user name",
-                            ),
-                            onFieldSubmitted: (value) {
-                              setState(() {
-                                userName = value;
-                              });
-                              Navigator.pop(context);
-                            },
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              RadioListTile(
+                                title: const Text('F2F'),
+                                value: 'F2F',
+                                groupValue: _selectedOption,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedOption = value!;
+                                    if (kDebugMode) {
+                                      print("${_selectedOption}is selected!");
+                                    }
+                                    _prefix = '[F]';
+                                  });
+                                },
+                              ),
+                              RadioListTile(
+                                title: const Text('Remote'),
+                                value: 'Remote',
+                                groupValue: _selectedOption,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedOption = value!;
+                                    if (kDebugMode) {
+                                      print("${_selectedOption}is selected!");
+                                    }
+                                    _prefix = '[R]';
+                                  });
+                                },
+                              ),
+                              TextFormField(
+                                controller: userNameController,
+                                autofocus: true,
+                                decoration: InputDecoration(
+                                  labelText: "User Name",
+                                  hintText: "Enter your user name",
+                                  prefixText: _prefix,
+                                ),
+                                onFieldSubmitted: (value) {
+                                  setState(() {
+                                    userName = value;
+                                  });
+                                  Navigator.pop(context);
+                                },
+                              ),
+                            ],
                           ),
                           actions: <Widget>[
                             ElevatedButton(
                               child: const Text("Set"),
                               onPressed: () {
                                 setState(() {
-                                  userName = userNameController.text;
+                                  userName = _prefix + userNameController.text;
                                 });
                                 Navigator.pop(context);
                               },
@@ -197,6 +329,7 @@ class _MyPageState extends State<MyPage> {
                     );
                   },
                 ),
+
                 ListTile(
                   leading: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -219,11 +352,9 @@ class _MyPageState extends State<MyPage> {
                       setState(() {
                         rooms = updatedRooms;
                       });
+                    } else {
+                      setState(() {});
                     }
-                    else
-                      {
-                        setState(() {});
-                      }
                   },
                 ),
               ],
@@ -233,12 +364,16 @@ class _MyPageState extends State<MyPage> {
         //has to be larger than 2
         items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
-            icon: handStatus == Hand.raised ? const Icon(Icons.person) :
-                  handStatus == Hand.lowered ? const Icon(Icons.front_hand) :
-                  const Icon(Icons.do_disturb_on_outlined),
-            label:  handStatus == Hand.raised ? "Lower Hand" :
-                    handStatus == Hand.lowered ? "Raise Hand" :
-                    "Not in Room",
+            icon: handStatus == Hand.raised
+                ? const Icon(Icons.person)
+                : handStatus == Hand.lowered
+                    ? const Icon(Icons.front_hand)
+                    : const Icon(Icons.do_disturb_on_outlined),
+            label: handStatus == Hand.raised
+                ? "Lower Hand"
+                : handStatus == Hand.lowered
+                    ? "Raise Hand"
+                    : "Not in Room",
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.refresh),
@@ -251,7 +386,10 @@ class _MyPageState extends State<MyPage> {
         ],
 
         currentIndex: _selectedIndex,
-        onTap: (index) => _onItemTapped(index),
+        onTap: (index) async {
+          await _onItemTapped(index);
+          setState(() => _selectedIndex = 0);
+        },
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
       ),
@@ -262,19 +400,19 @@ class _MyPageState extends State<MyPage> {
       // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+
   Future<void> applyMeetingRoomStatus() async {
     if (_isLoading == false) {
-      Hand currentHandState =  (await checkHandStatus()) ;
+      Hand currentHandState = (await checkHandStatus());
       // if Hand.raised, set handRaisedBoolean to true;
       // if not Hand.raised, set handRaisedBoolean to false
-      setState(()=> handStatus = currentHandState);
+      setState(() => handStatus = currentHandState);
       if (kDebugMode) {
         print(currentHandState);
         // setState(()=> handStatus = Hand.lowered);
       }
     }
   }
-
 
   Future<void> inputMeetingAndName(MeetingRoom room) async {
     // String roomname = room.name;
@@ -315,9 +453,9 @@ class _MyPageState extends State<MyPage> {
   Future<Hand> checkHandStatus() async {
     try {
       var result = await webViewController.runJavaScriptReturningResult(
-    'Boolean(document.getElementById("downbutton").childNodes.length)');
+          '(downButton =>  downButton.childNodes.length > 0 ? true : (downButton !== null ? false : null))(document.getElementById("downbutton"));');
       if (result == 'null') {
-         throw const FormatException("Not in a Room");
+        throw const FormatException("Not in a Room");
       }
       if (kDebugMode) {
         print(result);
@@ -337,11 +475,10 @@ class _MyPageState extends State<MyPage> {
         print('Error occurred while running JavaScript: $e');
       }
       return Hand.noHand;
-
     }
   }
 
-  void _onItemTapped(int index) async {
+  Future<void> _onItemTapped(int index) async {
     _selectedIndex = index;
     // inputMeetingAndName(index);
 
@@ -350,16 +487,15 @@ class _MyPageState extends State<MyPage> {
 
         Hand currentHandState = await checkHandStatus();
         if (currentHandState != handStatus) {
-          setState(()=> handStatus = currentHandState);
+          setState(() => handStatus = currentHandState);
         } else if (currentHandState == Hand.lowered) {
           webViewController.runJavaScript("MainScreen.raise('S');");
-          setState(()=> handStatus = Hand.raised);
-
+          setState(() => handStatus = Hand.raised);
         } else if (currentHandState == Hand.raised) {
           webViewController.runJavaScript("MainScreen.down();");
-          setState(()=> handStatus = Hand.lowered);
+          setState(() => handStatus = Hand.lowered);
         } else {
-          setState(()=> handStatus = Hand.noHand);
+          setState(() => handStatus = Hand.noHand);
         }
 
         break;
