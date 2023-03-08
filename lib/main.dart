@@ -389,26 +389,6 @@ class MeetingRoomsConfigWidgetState extends State<MeetingRoomsConfigWidget> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Configure Meeting Rooms")),
-      // body: ListView.builder(
-      //   itemCount: widget.rooms.length,
-      //   itemBuilder: (BuildContext context, int index) {
-      //     return Padding(
-      //       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      //       child: TextFormField(
-      //         initialValue: widget.rooms[index].name,
-      //         decoration: const InputDecoration(
-      //           labelText: "Meeting room name",
-      //           border: OutlineInputBorder(),
-      //         ),
-      //         onChanged: (value) {
-      //           setState(() {
-      //             widget.rooms[index].name = value;
-      //           });
-      //         },
-      //       ),
-      //     );
-      //   },
-      // ),
       body: ListView.builder(
         itemCount: widget.rooms.length,
         itemBuilder: (BuildContext context, int index) {
