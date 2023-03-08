@@ -362,7 +362,6 @@ class _MyPageState extends State<MyPage> {
           setState(()=> handStatus = Hand.noHand);
         }
 
-
         break;
       case 1: // Refresh
         webViewController.reload();
