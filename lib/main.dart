@@ -1,8 +1,9 @@
 import 'dart:async';
-
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(const MyApp());
 
@@ -22,9 +23,21 @@ class MyApp extends StatelessWidget {
 
 class MeetingRoom {
   String name;
-  bool available = true;
+  bool available;
+  MeetingRoom({required this.name, this.available = true});
+  factory MeetingRoom.fromJson(Map<String, dynamic> json) {
+    return MeetingRoom(
+      name: json['name'] ?? '',
+      available: json.containsKey('available') ? json['available'] : true,
+    );
+  }
 
-  MeetingRoom({required this.name});
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'available': available,
+    };
+  }
 }
 
 class MyPage extends StatefulWidget {
@@ -41,26 +54,81 @@ class _MyPageState extends State<MyPage> {
   int _progress = 0;
   MeetingRoom currentMeetingRoom = MeetingRoom(name: "None");
   int _selectedIndex = 0;
-  List<MeetingRoom> rooms = <MeetingRoom>[
-    MeetingRoom(name: "RAN1_Main"),
-    MeetingRoom(name: "RAN1_Brk1"),
-    MeetingRoom(name: "RAN1_Brk2"),
-    MeetingRoom(name: "RAN1_Off1"),
-    MeetingRoom(name: "RAN1_Off2"),
-  ];
+
+  //==========================================================================
+  late SharedPreferences prefs;
+  //--------------------------------------------------------------------------
+  late List<MeetingRoom> rooms;
   late String userName;
   late String _prefix;
   late String _selectedOption;
+  //==========================================================================
 
   late final WebViewController webViewController;
   // Completer webViewCompleter =  Completer();
 
+  Future<void> initPreferences() async {
+    prefs = await SharedPreferences.getInstance();
+    _loadUserData();
+    _loadRooms();
+  }
+
+  void _loadUserData() {
+    userName = prefs.getString('userName') ?? 'Company - GivenN LastN';
+    _prefix = prefs.getString('_prefix') ?? '[F]';
+    _selectedOption = prefs.getString('_selectedOption') ?? 'F2F';
+  }
+
+  void _loadRooms() {
+    final roomListJson = prefs.getStringList('rooms') ?? [];
+    rooms = roomListJson.map((json) => MeetingRoom.fromJson(jsonDecode(json))).toList();
+    if (rooms.isEmpty) {
+      rooms = [
+        MeetingRoom(name: "RAN1_Main"),
+        MeetingRoom(name: "RAN1_Brk1"),
+        MeetingRoom(name: "RAN1_Brk2"),
+        MeetingRoom(name: "RAN1_Off1"),
+        MeetingRoom(name: "RAN1_Off2"),
+      ];
+      _saveRooms();
+    }
+  }
+
+  void _saveRooms() {
+    final roomList = rooms.map((room) => room.toJson()).toList();
+    prefs.setStringList('rooms', roomList.map((json) => jsonEncode(json)).toList());
+  }
+  void _saveUserName() {
+    prefs.setString('userName', userName);
+  }
+  void _savePrefix() {
+    prefs.setString('_prefix', _prefix);
+    prefs.setString('_selectedOption',_selectedOption);
+  }
+
+
+  void _initDefaultValues() {
+    userName = "Company - GivenN LastN";
+    _prefix = "[F]";
+    _selectedOption = "F2F";
+    rooms = [
+      MeetingRoom(name: "RAN1_Main"),
+      MeetingRoom(name: "RAN1_Brk1"),
+      MeetingRoom(name: "RAN1_Brk2"),
+      MeetingRoom(name: "RAN1_Off1"),
+      MeetingRoom(name: "RAN1_Off2"),
+    ];
+    _saveUserName();
+    _savePrefix();
+    _saveRooms();
+
+  }
+
   @override
   void initState() {
     super.initState();
-    userName = "LG - Duckhyun Bae";
-    _prefix = '[F]';
-    _selectedOption = 'F2F';
+    initPreferences();
+
 
     webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -109,14 +177,7 @@ class _MyPageState extends State<MyPage> {
       ..loadRequest(Uri.parse('https://tohru.3gpp.org'));
   }
 
-  // Future<void> _waitWebView() {
-  //   if (_isLoading) {
-  //     return webViewCompleter.future;
-  //   } else {
-  //     webViewCompleter.complete();
-  //     return Future.value();
-  //   }
-  // }
+
 
   @override
   Widget build(BuildContext context) {
@@ -192,9 +253,9 @@ class _MyPageState extends State<MyPage> {
                     ],
                   ),
                   title: const Text('Set User Name'),
-                  subtitle: const Text('Select an option'),
-                  onTap: () {
-                    showDialog(
+                  subtitle: Text('$_prefix $userName'),
+                  onTap: () async {
+                    await showDialog(
                       context: context,
                       builder: (BuildContext context) {
                         final userNameController =
@@ -214,9 +275,10 @@ class _MyPageState extends State<MyPage> {
                                       setState(() {
                                         _selectedOption = value!;
                                         if (kDebugMode) {
-                                          print("${_selectedOption} is selected!");
+                                          print("$_selectedOption is selected!");
                                         }
                                         _prefix = '[F]';
+                                        _savePrefix();
                                       });
                                     },
                                   ),
@@ -228,9 +290,10 @@ class _MyPageState extends State<MyPage> {
                                       setState(() {
                                         _selectedOption = value!;
                                         if (kDebugMode) {
-                                          print("${_selectedOption} is selected!");
+                                          print("$_selectedOption is selected!");
                                         }
                                         _prefix = '[R]';
+                                        _savePrefix();
                                       });
                                     },
                                   ),
@@ -245,6 +308,7 @@ class _MyPageState extends State<MyPage> {
                                     onFieldSubmitted: (value) {
                                       setState(() {
                                         userName = value;
+                                        _saveUserName();
                                       });
                                       Navigator.pop(context);
                                     },
@@ -257,6 +321,7 @@ class _MyPageState extends State<MyPage> {
                                   onPressed: () {
                                     setState(() {
                                       userName = userNameController.text;
+                                      _saveUserName();
                                     });
                                     Navigator.pop(context);
                                   },
@@ -273,6 +338,7 @@ class _MyPageState extends State<MyPage> {
                         );
                       },
                     );
+                    setState(() {});
                   },
                 ),
 
@@ -297,12 +363,20 @@ class _MyPageState extends State<MyPage> {
                     if (updatedRooms != null) {
                       setState(() {
                         rooms = updatedRooms;
+                        _saveRooms();
                       });
                     } else {
                       setState(() {});
                     }
                   },
                 ),
+                ListTile(
+                  leading: const Icon(Icons.restart_alt),
+                  title: const Text('Set to Default'),
+                  subtitle: const Text('Name and Rooms'),
+                  onTap: () => _showConfirmationDialog(),
+                ),
+
               ],
         ),
       ),
@@ -346,6 +420,35 @@ class _MyPageState extends State<MyPage> {
       // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+  void _showConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Confirm Default Values'),
+          content: const Text('Are you sure you want to set default values for name and rooms?'),
+          actions: [
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+            TextButton(
+              child: const Text('Confirm'),
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+            ),
+          ],
+        );
+      },
+    ).then((confirmed) {
+      if (confirmed == true) {
+        setState(() {
+          _initDefaultValues();
+        });
+      }
+    });
+  }
 
   Future<void> applyMeetingRoomStatus() async {
     if (_isLoading == false) {
@@ -387,7 +490,7 @@ class _MyPageState extends State<MyPage> {
     if (loginNecessary == true) {
       webViewController.runJavaScript('''
             document.getElementById("meetingfield").value ="${room.name}";
-            document.getElementById("namefield").value ="${_prefix} ${userName}";
+            document.getElementById("namefield").value ="$_prefix $userName";
             WelcomeScreen.join();
             ''');
       currentMeetingRoom = room;

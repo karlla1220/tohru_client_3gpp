@@ -9,9 +9,13 @@
     <option name="autoReloadType" value="NONE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9fd1db26-769d-46a7-877c-7e22bbbe0212" name="Changes" comment="First version working">
+    <list default="true" id="9fd1db26-769d-46a7-877c-7e22bbbe0212" name="Changes" comment="Make autoSave feature.&#10;Make Default button.">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/build.gradle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/src/main/AndroidManifest.xml" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/src/main/AndroidManifest.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/lib/main.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/macos/Flutter/GeneratedPluginRegistrant.swift" beforeDir="false" afterPath="$PROJECT_DIR$/macos/Flutter/GeneratedPluginRegistrant.swift" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/pubspec.yaml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -54,6 +58,7 @@
     "DEBUGGABLE_DEVICE": "flutter_emulator_2 [emulator-5554]",
     "DEBUGGABLE_PROCESS": "com.example.tohru_client_3gpp",
     "DEBUGGER_ID": "Java",
+    "ResourceManagerPrefKey.ResourceType": "LAYOUT",
     "RunOnceActivity.cidr.known.project.marker": "true",
     "SHOW_ALL_PROCESSES": "false",
     "cidr.known.project.marker": "true",
@@ -67,6 +72,11 @@
     "show.migrate.to.gradle.popup": "false"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="E:\Programming\tohru_client_3gpp" />
+    </key>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -104,7 +114,14 @@
       <option name="project" value="LOCAL" />
       <updated>1678287030982</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="Make dialog stateful.">
+      <created>1678301263437</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1678301263437</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="ToolWindowManager">
@@ -126,10 +143,19 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="First version working" />
-    <option name="LAST_COMMIT_MESSAGE" value="First version working" />
+    <MESSAGE value="Make dialog stateful." />
+    <MESSAGE value="Make autoSave feature.&#10;Make Default button." />
+    <option name="LAST_COMMIT_MESSAGE" value="Make autoSave feature.&#10;Make Default button." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="Dart">
+          <url>file://$PROJECT_DIR$/../../Src/flutter/packages/flutter/lib/src/services/binding.dart</url>
+          <line>372</line>
+          <option name="timeStamp" value="55" />
+        </line-breakpoint>
+      </breakpoints>
       <default-breakpoints>
         <breakpoint type="dart-exception" />
       </default-breakpoints>
