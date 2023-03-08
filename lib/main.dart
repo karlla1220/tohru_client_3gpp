@@ -81,7 +81,9 @@ class _MyPageState extends State<MyPage> {
 
   void _loadRooms() {
     final roomListJson = prefs.getStringList('rooms') ?? [];
-    rooms = roomListJson.map((json) => MeetingRoom.fromJson(jsonDecode(json))).toList();
+    rooms = roomListJson
+        .map((json) => MeetingRoom.fromJson(jsonDecode(json)))
+        .toList();
     if (rooms.isEmpty) {
       rooms = [
         MeetingRoom(name: "RAN1_Main"),
@@ -96,16 +98,18 @@ class _MyPageState extends State<MyPage> {
 
   void _saveRooms() {
     final roomList = rooms.map((room) => room.toJson()).toList();
-    prefs.setStringList('rooms', roomList.map((json) => jsonEncode(json)).toList());
+    prefs.setStringList(
+        'rooms', roomList.map((json) => jsonEncode(json)).toList());
   }
+
   void _saveUserName() {
     prefs.setString('userName', userName);
   }
+
   void _savePrefix() {
     prefs.setString('_prefix', _prefix);
-    prefs.setString('_selectedOption',_selectedOption);
+    prefs.setString('_selectedOption', _selectedOption);
   }
-
 
   void _initDefaultValues() {
     userName = "Company - GivenN LastN";
@@ -121,14 +125,12 @@ class _MyPageState extends State<MyPage> {
     _saveUserName();
     _savePrefix();
     _saveRooms();
-
   }
 
   @override
   void initState() {
     super.initState();
     initPreferences();
-
 
     webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -176,8 +178,6 @@ class _MyPageState extends State<MyPage> {
       )
       ..loadRequest(Uri.parse('https://tohru.3gpp.org'));
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -242,7 +242,6 @@ class _MyPageState extends State<MyPage> {
                   .toList() +
               <Widget>[
                 const Divider(),
-
                 ListTile(
                   leading: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -259,7 +258,7 @@ class _MyPageState extends State<MyPage> {
                       context: context,
                       builder: (BuildContext context) {
                         final userNameController =
-                        TextEditingController(text: userName);
+                            TextEditingController(text: userName);
                         return StatefulBuilder(
                           builder: (BuildContext context, setState) {
                             return AlertDialog(
@@ -275,7 +274,8 @@ class _MyPageState extends State<MyPage> {
                                       setState(() {
                                         _selectedOption = value!;
                                         if (kDebugMode) {
-                                          print("$_selectedOption is selected!");
+                                          print(
+                                              "$_selectedOption is selected!");
                                         }
                                         _prefix = '[F]';
                                         _savePrefix();
@@ -290,7 +290,8 @@ class _MyPageState extends State<MyPage> {
                                       setState(() {
                                         _selectedOption = value!;
                                         if (kDebugMode) {
-                                          print("$_selectedOption is selected!");
+                                          print(
+                                              "$_selectedOption is selected!");
                                         }
                                         _prefix = '[R]';
                                         _savePrefix();
@@ -341,7 +342,6 @@ class _MyPageState extends State<MyPage> {
                     setState(() {});
                   },
                 ),
-
                 ListTile(
                   leading: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -376,7 +376,6 @@ class _MyPageState extends State<MyPage> {
                   subtitle: const Text('Name and Rooms'),
                   onTap: () => _showConfirmationDialog(),
                 ),
-
               ],
         ),
       ),
@@ -420,13 +419,15 @@ class _MyPageState extends State<MyPage> {
       // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+
   void _showConfirmationDialog() {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Confirm Default Values'),
-          content: const Text('Are you sure you want to set default values for name and rooms?'),
+          content: const Text(
+              'Are you sure you want to set default values for name and rooms?'),
           actions: [
             TextButton(
               child: const Text('Cancel'),
@@ -571,8 +572,6 @@ class _UserNameConfigWidgetState extends State<UserNameConfigWidget> {
     return const Placeholder();
   }
 }
-
-
 
 class MeetingRoomsConfigWidget extends StatefulWidget {
   final List<MeetingRoom> rooms;
