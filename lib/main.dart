@@ -1,115 +1,453 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
-void main() {
-  runApp(const MyApp());
-}
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+
+void main() => runApp(const MyApp());
+
+enum Hand { raised, lowered, noHand }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // Try running your application with "flutter run". You'll see the
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    return const MaterialApp(
+      title: "Tohru client",
+      home: MyPage(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+class MeetingRoom {
+  String name;
+  bool available = true;
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  MeetingRoom({required this.name});
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class MyPage extends StatefulWidget {
+  const MyPage({Key? key}) : super(key: key);
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  @override
+  State<MyPage> createState() => _MyPageState();
+}
+
+final scaffoldKey = GlobalKey<ScaffoldState>();
+
+class _MyPageState extends State<MyPage> {
+  bool _isLoading = false;
+  MeetingRoom currentMeetingRoom = MeetingRoom(name: "None");
+  int _selectedIndex = 0;
+  List<MeetingRoom> rooms = <MeetingRoom>[
+    MeetingRoom(name: "RAN1_Main"),
+    MeetingRoom(name: "RAN1_Brk1"),
+    MeetingRoom(name: "RAN1_Brk2"),
+    MeetingRoom(name: "RAN1_Off1"),
+    MeetingRoom(name: "RAN1_Off2"),
+  ];
+  String userName = "LG - Duckhyun Bae";
+
+  late final WebViewController webViewController;
+  // Completer webViewCompleter =  Completer();
+
+  @override
+  void initState() {
+    super.initState();
+
+    webViewController = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..enableZoom(true)
+      ..setBackgroundColor(const Color(0x00000000))
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onProgress: (int progress) {
+            // Update loading bar.
+          },
+          onPageStarted: (String url) async {
+            // Set false if the page finished loading.
+            setState(() => {_isLoading = true});
+            // webViewCompleter =  Completer();
+          },
+          onPageFinished: (String url) async {
+            // Set true if the page finished loading.
+            setState(() => {_isLoading = false});
+            // webViewCompleter.complete();
+          },
+          onWebResourceError: (WebResourceError error) {},
+          onNavigationRequest: (NavigationRequest request) {
+            if (request.url.startsWith('https://tohru.3gpp.org')) {
+              return NavigationDecision.prevent;
+            }
+            return NavigationDecision.navigate;
+          },
+        ),
+      )
+      ..loadRequest(Uri.parse('https://tohru.3gpp.org'));
   }
+
+  // Future<void> _waitWebView() {
+  //   if (_isLoading) {
+  //     return webViewCompleter.future;
+  //   } else {
+  //     webViewCompleter.complete();
+  //     return Future.value();
+  //   }
+  // }
+
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+      key: scaffoldKey,
+      body: WebViewWidget(controller: webViewController),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: const <Widget>[
+                DrawerHeader(
+                  decoration: BoxDecoration(
+                    color: Colors.blue,
+                  ),
+                  child: Text(
+                    'Rooms',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                    ),
+                  ),
+                ),
+              ] +
+              rooms
+                  .where((room) => room.available)
+                  .map((room) => ListTile(
+                        title: Text(room.name),
+                        leading: const Icon(Icons.meeting_room),
+                        // Row(
+                        //     mainAxisAlignment: MainAxisAlignment.start,
+                        //   children: const <Widget>[ Icon(Icons.edit),SizedBox(width: 1.0),Icon(Icons.meeting_room) ],
+                        // ),
+
+                        onTap: () async {
+                          Navigator.pop(context);
+                          inputMeetingAndName(room);
+                          // await _waitWebView();
+                          applyMeetingRoomStatus();
+
+                        },
+                      ))
+                  .toList() +
+              <Widget>[
+                const Divider(),
+                ListTile(
+                  // leading: Icon(Icons.person_sharp),
+                  leading: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const <Widget>[
+                      Icon(Icons.edit),
+                      SizedBox(width: 8.0),
+                      Icon(Icons.person),
+                    ],
+                  ),
+                  title: const Text('Set User Name'),
+                  onTap: () {
+                    // Go to configure page for Person
+                    //
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        final userNameController = TextEditingController(text: userName);
+                        return AlertDialog(
+                          title: const Text("Set User Name"),
+                          content: TextFormField(
+                            controller: userNameController,
+                            // initialValue: userName,
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              labelText: "User Name",
+                              hintText: "Enter your user name",
+                            ),
+                            onFieldSubmitted: (value) {
+                              setState(() {
+                                userName = value;
+                              });
+                              Navigator.pop(context);
+                            },
+                          ),
+                          actions: <Widget>[
+                            ElevatedButton(
+                              child: const Text("Set"),
+                              onPressed: () {
+                                setState(() {
+                                  userName = userNameController.text;
+                                });
+                                Navigator.pop(context);
+                              },
+                            ),
+                            TextButton(
+                              child: const Text("Cancel"),
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
+                ListTile(
+                  leading: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const <Widget>[
+                      Icon(Icons.edit),
+                      SizedBox(width: 8.0),
+                      Icon(Icons.meeting_room),
+                    ],
+                  ),
+                  title: const Text('Set meeting room ID'),
+                  onTap: () async {
+                    List<MeetingRoom>? updatedRooms = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (BuildContext context) =>
+                            MeetingRoomsConfigWidget(rooms: rooms),
+                      ),
+                    );
+                    if (updatedRooms != null) {
+                      setState(() {
+                        rooms = updatedRooms;
+                      });
+                    }
+                    else
+                      {
+                        setState(() {});
+                      }
+                  },
+                ),
+              ],
         ),
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        //has to be larger than 2
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: handStatus == Hand.raised ? const Icon(Icons.person) :
+                  handStatus == Hand.lowered ? const Icon(Icons.front_hand) :
+                  const Icon(Icons.do_disturb_on_outlined),
+            label:  handStatus == Hand.raised ? "Lower Hand" :
+                    handStatus == Hand.lowered ? "Raise Hand" :
+                    "Not in Room",
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.refresh),
+            label: 'Refresh',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.meeting_room),
+            label: 'Rooms',
+          ),
+        ],
+
+        currentIndex: _selectedIndex,
+        onTap: (index) => _onItemTapped(index),
+        selectedItemColor: Colors.black,
+        unselectedItemColor: Colors.grey,
+      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () => {},
+      //   tooltip: 'Refresh',
+      //   child: const Icon(Icons.refresh),
+      // ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+  Future<void> applyMeetingRoomStatus() async {
+    if (_isLoading == false) {
+      Hand currentHandState =  (await checkHandStatus()) ;
+      // if Hand.raised, set handRaisedBoolean to true;
+      // if not Hand.raised, set handRaisedBoolean to false
+      setState(()=> handStatus = currentHandState);
+      if (kDebugMode) {
+        print(currentHandState);
+        // setState(()=> handStatus = Hand.lowered);
+      }
+    }
+  }
+
+
+  Future<void> inputMeetingAndName(MeetingRoom room) async {
+    // String roomname = room.name;
+    bool registered = false;
+    bool loginNecessary = false;
+
+    registered = await webViewController
+        .runJavaScriptReturningResult('registered') as bool;
+
+    if (_isLoading == false) {
+      if (registered == true) {
+        if (currentMeetingRoom != room) {
+          webViewController.runJavaScript('MainScreen.logOut();');
+          loginNecessary = true;
+        }
+        if (currentMeetingRoom == room) {
+          if (kDebugMode) {
+            print("Attempt to login in same meeting room.");
+          }
+        }
+      }
+      if (registered == false) {
+        loginNecessary = true;
+      }
+    }
+    if (loginNecessary == true) {
+      webViewController.runJavaScript('''
+            document.getElementById("meetingfield").value ="${room.name}";
+            document.getElementById("namefield").value ="$userName";
+            WelcomeScreen.join();
+            ''');
+      currentMeetingRoom = room;
+    }
+  }
+
+  Hand handStatus = Hand.noHand;
+
+  Future<Hand> checkHandStatus() async {
+    try {
+      var result = await webViewController.runJavaScriptReturningResult(
+    'Boolean(document.getElementById("downbutton").childNodes.length)');
+      if (result == 'null') {
+         throw const FormatException("Not in a Room");
+      }
+      if (kDebugMode) {
+        print(result);
+        print(result.runtimeType);
+      }
+
+      final bool handRaised = result as bool;
+
+      if (handRaised) {
+        return Hand.raised;
+      } else {
+        return Hand.lowered;
+      }
+    } catch (e) {
+      // Handle the exception here
+      if (kDebugMode) {
+        print('Error occurred while running JavaScript: $e');
+      }
+      return Hand.noHand;
+
+    }
+  }
+
+  void _onItemTapped(int index) async {
+    _selectedIndex = index;
+    // inputMeetingAndName(index);
+
+    switch (_selectedIndex) {
+      case 0: // Raise Hand
+
+        Hand currentHandState = await checkHandStatus();
+        if (currentHandState != handStatus) {
+          setState(()=> handStatus = currentHandState);
+        } else if (currentHandState == Hand.lowered) {
+          webViewController.runJavaScript("MainScreen.raise('S');");
+          setState(()=> handStatus = Hand.raised);
+
+        } else if (currentHandState == Hand.raised) {
+          webViewController.runJavaScript("MainScreen.down();");
+          setState(()=> handStatus = Hand.lowered);
+        } else {
+          setState(()=> handStatus = Hand.noHand);
+        }
+
+
+        break;
+      case 1: // Refresh
+        webViewController.reload();
+        break;
+      case 2: // Room ID
+        scaffoldKey.currentState?.openDrawer();
+        break;
+    }
+  }
+}
+
+class MeetingRoomsConfigWidget extends StatefulWidget {
+  final List<MeetingRoom> rooms;
+
+  const MeetingRoomsConfigWidget({super.key, required this.rooms});
+
+  @override
+  MeetingRoomsConfigWidgetState createState() =>
+      MeetingRoomsConfigWidgetState();
+}
+
+class MeetingRoomsConfigWidgetState extends State<MeetingRoomsConfigWidget> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Configure Meeting Rooms")),
+      // body: ListView.builder(
+      //   itemCount: widget.rooms.length,
+      //   itemBuilder: (BuildContext context, int index) {
+      //     return Padding(
+      //       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      //       child: TextFormField(
+      //         initialValue: widget.rooms[index].name,
+      //         decoration: const InputDecoration(
+      //           labelText: "Meeting room name",
+      //           border: OutlineInputBorder(),
+      //         ),
+      //         onChanged: (value) {
+      //           setState(() {
+      //             widget.rooms[index].name = value;
+      //           });
+      //         },
+      //       ),
+      //     );
+      //   },
+      // ),
+      body: ListView.builder(
+        itemCount: widget.rooms.length,
+        itemBuilder: (BuildContext context, int index) {
+          return Row(
+            children: <Widget>[
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 10.0, right: 8.0),
+                  child: TextFormField(
+                    initialValue: widget.rooms[index].name,
+                    decoration: const InputDecoration(
+                      labelText: "Meeting Room Name",
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        widget.rooms[index].name = value;
+                      });
+                    },
+                  ),
+                ),
+              ),
+              Checkbox(
+                value: widget.rooms[index].available,
+                onChanged: (bool? value) {
+                  setState(() {
+                    widget.rooms[index].available = value ?? false;
+                  });
+                },
+              ),
+            ],
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+        child: const Icon(Icons.check),
+        onPressed: () {
+          Navigator.pop(context, widget.rooms);
+        },
+      ),
     );
   }
 }
