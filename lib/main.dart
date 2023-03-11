@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -9,7 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'tohru.dart';
 import 'preference_manager.dart';
 
-void main() => runApp(const MyApp());
+Future<void> main() async {
+  runApp(const MyApp());
+}
 
 enum Hand { raised, lowered, noHand }
 
@@ -44,7 +45,7 @@ class MyPage extends StatefulWidget {
 
 final scaffoldKey = GlobalKey<ScaffoldState>();
 
-class _MyPageState extends State<MyPage> with WidgetsBindingObserver {
+class _MyPageState extends State<MyPage> {
   bool _isLoading = false;
   int _progress = 0;
   static final emptyRoom = MeetingRoom(name: "None");
@@ -68,45 +69,15 @@ class _MyPageState extends State<MyPage> with WidgetsBindingObserver {
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.resumed:
-        printDebug('AppLifecycleState: resumed');
-        break;
-      case AppLifecycleState.inactive:
-        printDebug('AppLifecycleState: inactive');
-        break;
-      case AppLifecycleState.detached:
-        printDebug('AppLifecycleState: detached');
-        webViewController.runJavaScript('MainScreen.logOut();');
-        // await Future.delayed(const Duration(milliseconds: 300));
-        sleep(const Duration(milliseconds: 500));
-        printDebug('AppLifecycleState: logOut excuted');
-        // DO SOMETHING!
-        if (handStatus == Hand.raised) {
-          webViewController.runJavaScript("MainScreen.down();");
-        }
-        break;
-      case AppLifecycleState.paused:
-        printDebug('AppLifecycleState: paused');
-        break;
-      default:
-        break;
-    }
-  }
-
-  @override
   void dispose() {
     printDebug("Perfrom Dispose on main widget!!!");
-    if (handStatus == Hand.raised) {
-      webViewController.runJavaScript("MainScreen.down();");
-    }
-    waitPageChangedByHand([Hand.noHand, Hand.lowered]).then(
-      (_) => webViewController.runJavaScript('MainScreen.logOut();'),
-    );
+    // if (handStatus == Hand.raised) {
+    //   webViewController.runJavaScript("MainScreen.down();");
+    // }
+    // waitPageChangedByHand([Hand.noHand, Hand.lowered]).then(
+    //   (_) => webViewController.runJavaScript('MainScreen.logOut();'),
+    // );
     _saveAll();
-
-    WidgetsBinding.instance.removeObserver(this);
 
     printDebug("End Dispose on main widget!!!");
     super.dispose();
@@ -131,7 +102,6 @@ class _MyPageState extends State<MyPage> with WidgetsBindingObserver {
     printDebug("Perfrom init on main widget!!!");
 
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     PreferencesManager.init().then((_) {
       _loadAll();
     });
@@ -151,7 +121,7 @@ class _MyPageState extends State<MyPage> with WidgetsBindingObserver {
       onPageFinished: (String url) async {
         // Set true if the page finished loading.
         printDebug("Finish to load Webpage");
-        printDebug("Start to wait to load ");
+        printDebug("Start to wait to ajax load");
         LoadingState currentPage = await waitTohruLoading(
           target: LoadingState.loadingScreen,
         );
