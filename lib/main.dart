@@ -50,6 +50,7 @@ class _MyPageState extends State<MyPage> {
   int _progress = 0;
   static final emptyRoom = MeetingRoom(name: "None");
   MeetingRoom currentMeetingRoom = emptyRoom;
+
   int _selectedIndex = 0;
 
   //==========================================================================
@@ -134,7 +135,9 @@ class _MyPageState extends State<MyPage> {
             (_) => applyMeetingRoomStatus(),
           );
         } else {
-          applyMeetingRoomStatus();
+          waitPageChangedByHand([Hand.noHand]).then(
+            (_) => applyMeetingRoomStatus(),
+          );
         }
       },
     ).webViewController;
@@ -179,15 +182,18 @@ class _MyPageState extends State<MyPage> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: const <Widget>[
-                DrawerHeader(
-                  decoration: BoxDecoration(
-                    color: Colors.blue,
-                  ),
-                  child: Text(
-                    'Rooms',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
+                SizedBox(
+                  height: 130,
+                  child: DrawerHeader(
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                    ),
+                    child: Text(
+                      'Rooms',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
                     ),
                   ),
                 ),
@@ -343,6 +349,18 @@ class _MyPageState extends State<MyPage> {
                   subtitle: const Text('Name and Rooms'),
                   onTap: () => _showConfirmationDialog(),
                 ),
+                const Divider(),
+                Visibility(
+                  visible: (handStatus != Hand.noHand),
+                  child: ListTile(
+                      leading: const Icon(Icons.exit_to_app),
+                      title: const Text('Log-out from Meeting room'),
+                      subtitle: const Text('Hand will be lowered'),
+                      onTap: () {
+                        logOutFromRoomWithLoweringHand();
+                        Navigator.pop(context);
+                      }),
+                ),
               ],
         ),
       ),
@@ -382,6 +400,42 @@ class _MyPageState extends State<MyPage> {
     );
   }
 
+  void logOutFromRoomWithLoweringHand() async {
+    await waitTohruLoading();
+    await applyMeetingRoomStatus();
+    if (handStatus == Hand.noHand) {
+      //Do nothing. "setState()" already done in applyMeetingRoomStatus();
+    } else if (handStatus != Hand.noHand) {
+      if (handStatus == Hand.raised) {
+        webViewController.runJavaScript("MainScreen.down();");
+        await waitPageChangedByHand([Hand.lowered]);
+      }
+      webViewController
+          .runJavaScript('MainScreen.logOut();')
+          .then(
+            // wait until screen change
+            (_) => waitTohruLoading(
+              target: LoadingState.loginWindow,
+            ),
+          )
+          .then(
+            // wait until no Hand verified
+            (_) => waitPageChangedByHand(
+              [Hand.noHand],
+            ),
+          )
+          .then(
+            //set State as not In a Room
+            (_) => setState(
+              () {
+                handStatus = Hand.noHand;
+                currentMeetingRoom = emptyRoom;
+              },
+            ),
+          );
+    }
+  }
+
   void _showConfirmationDialog() {
     showDialog(
       context: context,
@@ -416,7 +470,7 @@ class _MyPageState extends State<MyPage> {
   Future<void> inputMeetingAndName(MeetingRoom room) async {
     // String roomname = room.name;
     bool loginNecessary = false;
-
+    await waitTohruLoading();
     await applyMeetingRoomStatus();
 
     if (_isLoading == false) {
@@ -443,7 +497,7 @@ class _MyPageState extends State<MyPage> {
       }
     }
     if (loginNecessary == true) {
-      webViewController.runJavaScript('''
+      await webViewController.runJavaScript('''
             document.getElementById("meetingfield").value ="${room.name}";
             document.getElementById("namefield").value ="$_prefix $userName";
             WelcomeScreen.join();
@@ -484,9 +538,8 @@ class _MyPageState extends State<MyPage> {
       final bool registered = result["registered"];
 
       if (registered == false || result == 'null') {
-        currentMeetingRoom = emptyRoom;
         throw const FormatException("Not in a Room");
-      }
+      } else {}
 
       if (handRaised) {
         return Hand.raised;
@@ -503,9 +556,18 @@ class _MyPageState extends State<MyPage> {
   Future<Apply> applyMeetingRoomStatus({bool apply = true}) async {
     if (_isLoading == false) {
       Hand currentHandState = (await checkHandStatus());
+
+      if (currentHandState == Hand.noHand) {
+        currentMeetingRoom = emptyRoom;
+      } else {}
+
       if (handStatus != currentHandState) {
         if (apply) {
-          setState(() => handStatus = currentHandState);
+          setState(
+            () {
+              handStatus = currentHandState;
+            },
+          );
         }
         printDebug("Apply $currentHandState");
 
