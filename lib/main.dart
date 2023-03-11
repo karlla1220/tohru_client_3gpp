@@ -2,12 +2,19 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'tohru_webview.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'tohru.dart';
+import 'preference_manager.dart';
 
 void main() => runApp(const MyApp());
 
 enum Hand { raised, lowered, noHand }
+
+enum LoadingState { loginWindow, loadingScreen, inRoom }
+
+enum Apply { changed, unchanged }
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -18,25 +25,6 @@ class MyApp extends StatelessWidget {
       title: "Tohru client",
       home: MyPage(),
     );
-  }
-}
-
-class MeetingRoom {
-  String name;
-  bool available;
-  MeetingRoom({required this.name, this.available = true});
-  factory MeetingRoom.fromJson(Map<String, dynamic> json) {
-    return MeetingRoom(
-      name: json['name'] ?? '',
-      available: json.containsKey('available') ? json['available'] : true,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'available': available,
-    };
   }
 }
 
@@ -58,125 +46,87 @@ class _MyPageState extends State<MyPage> {
   //==========================================================================
   late SharedPreferences prefs;
   //--------------------------------------------------------------------------
-  late List<MeetingRoom> rooms;
-  late String userName;
-  late String _prefix;
-  late String _selectedOption;
+  List<MeetingRoom> rooms = [];
+  String userName = "";
+  String _prefix = "";
+  String _selectedOption = "";
   //==========================================================================
 
+  void _saveAll() {
+    PreferencesManager.prefix = _prefix;
+    PreferencesManager.selectedOption = _selectedOption;
+    PreferencesManager.userName = userName;
+    PreferencesManager.rooms = rooms;
+  }
+
+  @override
+  void dispose() {
+    _saveAll();
+    super.dispose();
+  }
+
   late final WebViewController webViewController;
-  // Completer webViewCompleter =  Completer();
 
-  Future<void> initPreferences() async {
-    prefs = await SharedPreferences.getInstance();
-    _loadUserData();
-    _loadRooms();
-  }
-
-  void _loadUserData() {
-    userName = prefs.getString('userName') ?? 'Company - GivenN LastN';
-    _prefix = prefs.getString('_prefix') ?? '[F]';
-    _selectedOption = prefs.getString('_selectedOption') ?? 'F2F';
-  }
-
-  void _loadRooms() {
-    final roomListJson = prefs.getStringList('rooms') ?? [];
-    rooms = roomListJson
-        .map((json) => MeetingRoom.fromJson(jsonDecode(json)))
-        .toList();
-    if (rooms.isEmpty) {
-      rooms = [
-        MeetingRoom(name: "RAN1_Main"),
-        MeetingRoom(name: "RAN1_Brk1"),
-        MeetingRoom(name: "RAN1_Brk2"),
-        MeetingRoom(name: "RAN1_Off1"),
-        MeetingRoom(name: "RAN1_Off2"),
-      ];
-      _saveRooms();
-    }
-  }
-
-  void _saveRooms() {
-    final roomList = rooms.map((room) => room.toJson()).toList();
-    prefs.setStringList(
-        'rooms', roomList.map((json) => jsonEncode(json)).toList());
-  }
-
-  void _saveUserName() {
-    prefs.setString('userName', userName);
-  }
-
-  void _savePrefix() {
-    prefs.setString('_prefix', _prefix);
-    prefs.setString('_selectedOption', _selectedOption);
+  void _loadAll() {
+    userName = PreferencesManager.userName;
+    _prefix = PreferencesManager.prefix;
+    _selectedOption = PreferencesManager.selectedOption;
+    rooms = PreferencesManager.rooms;
   }
 
   void _initDefaultValues() {
-    userName = "Company - GivenN LastN";
-    _prefix = "[F]";
-    _selectedOption = "F2F";
-    rooms = [
-      MeetingRoom(name: "RAN1_Main"),
-      MeetingRoom(name: "RAN1_Brk1"),
-      MeetingRoom(name: "RAN1_Brk2"),
-      MeetingRoom(name: "RAN1_Off1"),
-      MeetingRoom(name: "RAN1_Off2"),
-    ];
-    _saveUserName();
-    _savePrefix();
-    _saveRooms();
+    PreferencesManager.setDefaults();
+    _loadAll();
   }
 
   @override
   void initState() {
     super.initState();
-    initPreferences();
+    PreferencesManager.init().then((_) {
+      _loadAll();
+    });
 
-    webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..enableZoom(true)
-      // ..setBackgroundColor(const Color(0x00000000))
-      // ..setBackgroundColor(Colors.white)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onProgress: (int progress) {
-            // Update loading bar.
-            setState(() {
-              _progress = progress;
-            });
-          },
-          onPageStarted: (String url) async {
-            // Set false if the page finished loading.
-            if (kDebugMode) {
-              print("Start to load Webpage");
-            }
-            setState(() => {_isLoading = true});
-            // webViewCompleter =  Completer();
-          },
-          onPageFinished: (String url) async {
-            // Set true if the page finished loading.
-            if (kDebugMode) {
-              print("Finish to load Webpage");
-            }
-            setState(() => {_isLoading = false});
-            // webViewCompleter.complete();
-          },
-          onWebResourceError: (WebResourceError error) {},
-          onNavigationRequest: (NavigationRequest request) {
-            if (!request.url.startsWith('https://tohru.3gpp.org')) {
-              if (kDebugMode) {
-                print("Stop to URL");
-              }
-              return NavigationDecision.prevent;
-            }
-            if (kDebugMode) {
-              print("go to URL");
-            }
-            return NavigationDecision.navigate;
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse('https://tohru.3gpp.org'));
+    webViewController = TohruWebView(
+      onProgress: (int progress) {
+        // Update loading bar.
+        setState(() {
+          _progress = progress;
+        });
+      },
+      onPageStarted: (String url) async {
+        // Set false if the page finished loading.
+        if (kDebugMode) {
+          print("Start to load Webpage");
+        }
+        setState(() => {_isLoading = true});
+      },
+      onPageFinished: (String url) async {
+        // Set true if the page finished loading.
+        if (kDebugMode) {
+          print("Finish to load Webpage");
+        }
+        if (kDebugMode) {
+          print("Start to wait to load ");
+        }
+        LoadingState currentPage = await waitTohruLoading(
+          target: LoadingState.loadingScreen,
+        );
+        if (kDebugMode) {
+          print("end to wait to load ");
+          print("set to loading=false, refresh screen after 0.5 sec.");
+        }
+        setState(() {
+          _isLoading = false;
+        });
+        if (currentPage == LoadingState.inRoom) {
+          waitPageChangedByHand([Hand.lowered, Hand.raised]).then(
+            (_) => applyMeetingRoomStatus(),
+          );
+        } else {
+          applyMeetingRoomStatus();
+        }
+      },
+    ).webViewController;
   }
 
   @override
@@ -200,7 +150,14 @@ class _MyPageState extends State<MyPage> {
                       value: _progress / 100,
                     ),
                   ),
-                  Expanded(child: WebViewWidget(controller: webViewController)),
+                  Expanded(
+                      child: Stack(children: [
+                    WebViewWidget(controller: webViewController),
+                    if (_isLoading)
+                      const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                  ])),
                 ],
               )),
         ),
@@ -235,8 +192,6 @@ class _MyPageState extends State<MyPage> {
                         onTap: () async {
                           Navigator.pop(context);
                           inputMeetingAndName(room);
-                          // await _waitWebView();
-                          applyMeetingRoomStatus();
                         },
                       ))
                   .toList() +
@@ -278,7 +233,7 @@ class _MyPageState extends State<MyPage> {
                                               "$_selectedOption is selected!");
                                         }
                                         _prefix = '[F]';
-                                        _savePrefix();
+                                        PreferencesManager.prefix = _prefix;
                                       });
                                     },
                                   ),
@@ -294,7 +249,7 @@ class _MyPageState extends State<MyPage> {
                                               "$_selectedOption is selected!");
                                         }
                                         _prefix = '[R]';
-                                        _savePrefix();
+                                        PreferencesManager.prefix = _prefix;
                                       });
                                     },
                                   ),
@@ -309,7 +264,6 @@ class _MyPageState extends State<MyPage> {
                                     onFieldSubmitted: (value) {
                                       setState(() {
                                         userName = value;
-                                        _saveUserName();
                                       });
                                       Navigator.pop(context);
                                     },
@@ -322,7 +276,7 @@ class _MyPageState extends State<MyPage> {
                                   onPressed: () {
                                     setState(() {
                                       userName = userNameController.text;
-                                      _saveUserName();
+                                      PreferencesManager.userName = userName;
                                     });
                                     Navigator.pop(context);
                                   },
@@ -363,7 +317,7 @@ class _MyPageState extends State<MyPage> {
                     if (updatedRooms != null) {
                       setState(() {
                         rooms = updatedRooms;
-                        _saveRooms();
+                        PreferencesManager.rooms = rooms;
                       });
                     } else {
                       setState(() {});
@@ -412,11 +366,6 @@ class _MyPageState extends State<MyPage> {
         selectedItemColor: Colors.black,
         unselectedItemColor: Colors.grey,
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () => {},
-      //   tooltip: 'Refresh',
-      //   child: const Icon(Icons.refresh),
-      // ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 
@@ -451,19 +400,6 @@ class _MyPageState extends State<MyPage> {
     });
   }
 
-  Future<void> applyMeetingRoomStatus() async {
-    if (_isLoading == false) {
-      Hand currentHandState = (await checkHandStatus());
-      // if Hand.raised, set handRaisedBoolean to true;
-      // if not Hand.raised, set handRaisedBoolean to false
-      setState(() => handStatus = currentHandState);
-      if (kDebugMode) {
-        print(currentHandState);
-        // setState(()=> handStatus = Hand.lowered);
-      }
-    }
-  }
-
   Future<void> inputMeetingAndName(MeetingRoom room) async {
     // String roomname = room.name;
     bool registered = false;
@@ -475,7 +411,10 @@ class _MyPageState extends State<MyPage> {
     if (_isLoading == false) {
       if (registered == true) {
         if (currentMeetingRoom != room) {
-          webViewController.runJavaScript('MainScreen.logOut();');
+          await webViewController.runJavaScript('MainScreen.logOut();');
+          //wait logout finish
+          await waitTohruLoading(target: LoadingState.loginWindow);
+          await waitPageChangedByHand([Hand.noHand]);
           loginNecessary = true;
         }
         if (currentMeetingRoom == room) {
@@ -485,6 +424,7 @@ class _MyPageState extends State<MyPage> {
         }
       }
       if (registered == false) {
+        await waitPageChangedByHand([Hand.noHand]);
         loginNecessary = true;
       }
     }
@@ -494,7 +434,13 @@ class _MyPageState extends State<MyPage> {
             document.getElementById("namefield").value ="$_prefix $userName";
             WelcomeScreen.join();
             ''');
-      currentMeetingRoom = room;
+      await waitTohruLoading(target: LoadingState.inRoom);
+      waitPageChangedByHand([Hand.lowered, Hand.raised]).then(
+        (_) => setState(() {
+          currentMeetingRoom = room;
+          handStatus = Hand.lowered;
+        }),
+      );
     }
   }
 
@@ -502,17 +448,32 @@ class _MyPageState extends State<MyPage> {
 
   Future<Hand> checkHandStatus() async {
     try {
-      var result = await webViewController.runJavaScriptReturningResult(
-          '(downButton =>  downButton.childNodes.length > 0 ? true : (downButton !== null ? false : null))(document.getElementById("downbutton"));');
-      if (result == 'null') {
-        throw const FormatException("Not in a Room");
-      }
+      // var result = await webViewController.runJavaScriptReturningResult(
+      // '(downButton =>  downButton.childNodes.length > 0 ? true : (downButton !== null ? false : null))(document.getElementById("downbutton"));');
+
+      final result = await webViewController.runJavaScriptReturningResult('''
+      (() => {
+        return {
+          registered: registered,
+          handRaised: UserInfo.hand.raised,
+        };
+        })()
+      ''').then(
+        (value) => jsonDecode(value as String),
+      );
+      // (UserInfo.hand.raised, resgistered);
+
       if (kDebugMode) {
         print(result);
         print(result.runtimeType);
       }
 
-      final bool handRaised = result as bool;
+      final bool handRaised = result["handRaised"];
+      final bool registered = result["registered"];
+
+      if (registered == false || result == 'null') {
+        throw const FormatException("Not in a Room");
+      }
 
       if (handRaised) {
         return Hand.raised;
@@ -528,6 +489,24 @@ class _MyPageState extends State<MyPage> {
     }
   }
 
+  Future<Apply> applyMeetingRoomStatus({bool apply = true}) async {
+    if (_isLoading == false) {
+      Hand currentHandState = (await checkHandStatus());
+      if (handStatus != currentHandState) {
+        if (apply) {
+          setState(() => handStatus = currentHandState);
+        }
+        if (kDebugMode) {
+          print("Apply $currentHandState");
+        }
+        return Apply.changed;
+      } else {
+        return Apply.unchanged;
+      }
+    }
+    return Apply.unchanged;
+  }
+
   Future<void> _onItemTapped(int index) async {
     _selectedIndex = index;
     // inputMeetingAndName(index);
@@ -535,98 +514,116 @@ class _MyPageState extends State<MyPage> {
     switch (_selectedIndex) {
       case 0: // Raise Hand
 
-        Hand currentHandState = await checkHandStatus();
-        if (currentHandState != handStatus) {
-          setState(() => handStatus = currentHandState);
-        } else if (currentHandState == Hand.lowered) {
-          webViewController.runJavaScript("MainScreen.raise('S');");
-          setState(() => handStatus = Hand.raised);
-        } else if (currentHandState == Hand.raised) {
-          webViewController.runJavaScript("MainScreen.down();");
-          setState(() => handStatus = Hand.lowered);
+        if (await applyMeetingRoomStatus() == Apply.changed) {
+          //
         } else {
-          setState(() => handStatus = Hand.noHand);
+          if (handStatus == Hand.lowered) {
+            webViewController.runJavaScript("MainScreen.raise('S');");
+            //Wait the change of runJavaScript
+            waitPageChangedByHand([Hand.raised]).then(
+              (_) => setState(() => handStatus = Hand.raised),
+            );
+          } else if (handStatus == Hand.raised) {
+            webViewController.runJavaScript("MainScreen.down();");
+            //Wait the change of runJavaScript
+            waitPageChangedByHand([Hand.lowered]).then(
+              (_) => setState(() => handStatus = Hand.lowered),
+            );
+            waitPageChangedByHand([Hand.lowered]).then(
+              (_) => setState(() => handStatus = Hand.lowered),
+            );
+          }
         }
 
         break;
       case 1: // Refresh
         webViewController.reload();
+
         break;
       case 2: // Room ID
         scaffoldKey.currentState?.openDrawer();
         break;
     }
   }
-}
 
-class UserNameConfigWidget extends StatefulWidget {
-  const UserNameConfigWidget({Key? key}) : super(key: key);
+  Future<void> waitPageChangedByHand(final List<Hand> targetHands) async {
+    int totalTimeWaited = 0;
+    const int maxWaitTime = 3000; // 3 seconds in milliseconds
+    while (true) {
+      var downbutton = await webViewController.runJavaScriptReturningResult(
+        'document.getElementById("downbutton")?.children.length',
+      );
+      int buttonStatus = downbutton.runtimeType != int ? -1 : downbutton as int;
 
-  @override
-  State<UserNameConfigWidget> createState() => _UserNameConfigWidgetState();
-}
+      if (targetHands.contains(Hand.noHand) && buttonStatus < 0) {
+        break;
+      } else {
+        bool isHandListLoaded =
+            await webViewController.runJavaScriptReturningResult(
+                    "(document.getElementById('speaker')?.textContent ?? 'LOADING...') !== 'LOADING...'")
+                as bool;
+        if (isHandListLoaded) {
+          if (targetHands.contains(Hand.lowered) && buttonStatus == 0) {
+            break;
+          } else if (targetHands.contains(Hand.raised) && buttonStatus > 0) {
+            break;
+          }
+        }
+      }
 
-class _UserNameConfigWidgetState extends State<UserNameConfigWidget> {
-  @override
-  Widget build(BuildContext context) {
-    return const Placeholder();
+      await Future.delayed(const Duration(milliseconds: 100));
+      totalTimeWaited += 100;
+      if (totalTimeWaited >= maxWaitTime) {
+        if (kDebugMode) {
+          print('Timed out while waiting for hand change');
+        }
+        return;
+      }
+    }
   }
-}
 
-class MeetingRoomsConfigWidget extends StatefulWidget {
-  final List<MeetingRoom> rooms;
+  Future<LoadingState> waitTohruLoading(
+      {final LoadingState target = LoadingState.loadingScreen}) async {
+    int totalTimeWaited = 0;
+    const int maxWaitTime = 10000; // 10 seconds in milliseconds
+    int origin;
+    while (true) {
+      try {
+        origin = await webViewController.runJavaScriptReturningResult(
+          'document.getElementById("origin")?.children.length',
+        ) as int;
+      } on Exception catch (e) {
+        if (kDebugMode) {
+          print(e);
+        }
+        origin = -1;
+      }
 
-  const MeetingRoomsConfigWidget({super.key, required this.rooms});
+      if (target == LoadingState.loadingScreen && origin > 0) {
+        break;
+      } else if (target == LoadingState.inRoom && origin > 0 && origin < 6) {
+        break;
+      } else if (target == LoadingState.loginWindow &&
+          origin > 0 &&
+          origin > 6) {
+        break;
+      }
 
-  @override
-  MeetingRoomsConfigWidgetState createState() =>
-      MeetingRoomsConfigWidgetState();
-}
-
-class MeetingRoomsConfigWidgetState extends State<MeetingRoomsConfigWidget> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("Configure Meeting Rooms")),
-      body: ListView.builder(
-        itemCount: widget.rooms.length,
-        itemBuilder: (BuildContext context, int index) {
-          return Row(
-            children: <Widget>[
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 10.0, right: 8.0),
-                  child: TextFormField(
-                    initialValue: widget.rooms[index].name,
-                    decoration: const InputDecoration(
-                      labelText: "Meeting Room Name",
-                    ),
-                    onChanged: (value) {
-                      setState(() {
-                        widget.rooms[index].name = value;
-                      });
-                    },
-                  ),
-                ),
-              ),
-              Checkbox(
-                value: widget.rooms[index].available,
-                onChanged: (bool? value) {
-                  setState(() {
-                    widget.rooms[index].available = value ?? false;
-                  });
-                },
-              ),
-            ],
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.check),
-        onPressed: () {
-          Navigator.pop(context, widget.rooms);
-        },
-      ),
-    );
+      await Future.delayed(const Duration(milliseconds: 100));
+      totalTimeWaited += 100;
+      if (totalTimeWaited >= maxWaitTime) {
+        if (kDebugMode) {
+          print('Timed out while waiting for Tohru Loading');
+        }
+        return LoadingState.loadingScreen;
+      }
+    }
+    if (origin > 0 && origin < 6) {
+      return LoadingState.inRoom;
+    } else if (origin > 0 && origin >= 6) {
+      return LoadingState.loginWindow;
+    } else {
+      return LoadingState.loadingScreen;
+    }
   }
 }
