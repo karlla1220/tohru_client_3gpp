@@ -25,6 +25,10 @@ class TohruWebView {
     return _instance;
   }
 
+  void dispose() {
+    webViewController.runJavaScript("MainScreen.down();)");
+  }
+
   TohruWebView._() {
     final navDelegate = NavigationDelegate(
       onProgress: (int progress) {

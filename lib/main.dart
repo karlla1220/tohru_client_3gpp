@@ -8,7 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'tohru.dart';
 import 'preference_manager.dart';
 
-Future<void> main() async {
+void main() {
   runApp(const MyApp());
 }
 
