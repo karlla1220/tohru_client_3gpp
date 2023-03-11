@@ -1,4 +1,4 @@
-package com.example.tohru_client_3gpp
+package com.dhbae.tohru_client_3gpp
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.tohru_client_3gpp">
+    package="com.dhbae.tohru_client_3gpp">
    <uses-permission android:name="android.permission.INTERNET"/>
    
    <application
