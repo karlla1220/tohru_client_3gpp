@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -15,6 +16,12 @@ enum Hand { raised, lowered, noHand }
 enum LoadingState { loginWindow, loadingScreen, inRoom }
 
 enum Apply { changed, unchanged }
+
+void printDebug(Object? object) {
+  if (kDebugMode) {
+    print(object);
+  }
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -37,10 +44,11 @@ class MyPage extends StatefulWidget {
 
 final scaffoldKey = GlobalKey<ScaffoldState>();
 
-class _MyPageState extends State<MyPage> {
+class _MyPageState extends State<MyPage> with WidgetsBindingObserver {
   bool _isLoading = false;
   int _progress = 0;
-  MeetingRoom currentMeetingRoom = MeetingRoom(name: "None");
+  static final emptyRoom = MeetingRoom(name: "None");
+  MeetingRoom currentMeetingRoom = emptyRoom;
   int _selectedIndex = 0;
 
   //==========================================================================
@@ -60,8 +68,47 @@ class _MyPageState extends State<MyPage> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        printDebug('AppLifecycleState: resumed');
+        break;
+      case AppLifecycleState.inactive:
+        printDebug('AppLifecycleState: inactive');
+        break;
+      case AppLifecycleState.detached:
+        printDebug('AppLifecycleState: detached');
+        webViewController.runJavaScript('MainScreen.logOut();');
+        // await Future.delayed(const Duration(milliseconds: 300));
+        sleep(const Duration(milliseconds: 500));
+        printDebug('AppLifecycleState: logOut excuted');
+        // DO SOMETHING!
+        if (handStatus == Hand.raised) {
+          webViewController.runJavaScript("MainScreen.down();");
+        }
+        break;
+      case AppLifecycleState.paused:
+        printDebug('AppLifecycleState: paused');
+        break;
+      default:
+        break;
+    }
+  }
+
+  @override
   void dispose() {
+    printDebug("Perfrom Dispose on main widget!!!");
+    if (handStatus == Hand.raised) {
+      webViewController.runJavaScript("MainScreen.down();");
+    }
+    waitPageChangedByHand([Hand.noHand, Hand.lowered]).then(
+      (_) => webViewController.runJavaScript('MainScreen.logOut();'),
+    );
     _saveAll();
+
+    WidgetsBinding.instance.removeObserver(this);
+
+    printDebug("End Dispose on main widget!!!");
     super.dispose();
   }
 
@@ -81,7 +128,10 @@ class _MyPageState extends State<MyPage> {
 
   @override
   void initState() {
+    printDebug("Perfrom init on main widget!!!");
+
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     PreferencesManager.init().then((_) {
       _loadAll();
     });
@@ -95,26 +145,17 @@ class _MyPageState extends State<MyPage> {
       },
       onPageStarted: (String url) async {
         // Set false if the page finished loading.
-        if (kDebugMode) {
-          print("Start to load Webpage");
-        }
+        printDebug("Start to load Webpage");
         setState(() => {_isLoading = true});
       },
       onPageFinished: (String url) async {
         // Set true if the page finished loading.
-        if (kDebugMode) {
-          print("Finish to load Webpage");
-        }
-        if (kDebugMode) {
-          print("Start to wait to load ");
-        }
+        printDebug("Finish to load Webpage");
+        printDebug("Start to wait to load ");
         LoadingState currentPage = await waitTohruLoading(
           target: LoadingState.loadingScreen,
         );
-        if (kDebugMode) {
-          print("end to wait to load ");
-          print("set to loading=false, refresh screen after 0.5 sec.");
-        }
+        printDebug("end to wait to load ");
         setState(() {
           _isLoading = false;
         });
@@ -127,6 +168,8 @@ class _MyPageState extends State<MyPage> {
         }
       },
     ).webViewController;
+
+    printDebug("End init on main widget!!!");
   }
 
   @override
@@ -225,15 +268,15 @@ class _MyPageState extends State<MyPage> {
                                     title: const Text('F2F'),
                                     value: 'F2F',
                                     groupValue: _selectedOption,
+                                    toggleable: true,
+                                    dense: true,
                                     onChanged: (value) {
                                       setState(() {
-                                        _selectedOption = value!;
-                                        if (kDebugMode) {
-                                          print(
-                                              "$_selectedOption is selected!");
-                                        }
-                                        _prefix = '[F]';
+                                        _selectedOption = value ?? "None";
+                                        _prefix = _prefix != '[F]' ? '[F]' : "";
                                         PreferencesManager.prefix = _prefix;
+                                        PreferencesManager.selectedOption =
+                                            _selectedOption;
                                       });
                                     },
                                   ),
@@ -241,15 +284,15 @@ class _MyPageState extends State<MyPage> {
                                     title: const Text('Remote'),
                                     value: 'Remote',
                                     groupValue: _selectedOption,
+                                    toggleable: true,
+                                    dense: true,
                                     onChanged: (value) {
                                       setState(() {
-                                        _selectedOption = value!;
-                                        if (kDebugMode) {
-                                          print(
-                                              "$_selectedOption is selected!");
-                                        }
-                                        _prefix = '[R]';
+                                        _selectedOption = value ?? "None";
+                                        _prefix = _prefix != '[R]' ? '[R]' : "";
                                         PreferencesManager.prefix = _prefix;
+                                        PreferencesManager.selectedOption =
+                                            _selectedOption;
                                       });
                                     },
                                   ),
@@ -402,15 +445,18 @@ class _MyPageState extends State<MyPage> {
 
   Future<void> inputMeetingAndName(MeetingRoom room) async {
     // String roomname = room.name;
-    bool registered = false;
     bool loginNecessary = false;
 
-    registered = await webViewController
-        .runJavaScriptReturningResult('registered') as bool;
+    await applyMeetingRoomStatus();
 
     if (_isLoading == false) {
-      if (registered == true) {
+      if (currentMeetingRoom != emptyRoom) {
         if (currentMeetingRoom != room) {
+          if (handStatus == Hand.raised) {
+            webViewController.runJavaScript("MainScreen.down();");
+            await waitPageChangedByHand([Hand.lowered]);
+          }
+
           await webViewController.runJavaScript('MainScreen.logOut();');
           //wait logout finish
           await waitTohruLoading(target: LoadingState.loginWindow);
@@ -418,12 +464,10 @@ class _MyPageState extends State<MyPage> {
           loginNecessary = true;
         }
         if (currentMeetingRoom == room) {
-          if (kDebugMode) {
-            print("Attempt to login in same meeting room.");
-          }
+          printDebug("Attempt to login in same meeting room.");
         }
       }
-      if (registered == false) {
+      if (currentMeetingRoom == emptyRoom) {
         await waitPageChangedByHand([Hand.noHand]);
         loginNecessary = true;
       }
@@ -463,15 +507,14 @@ class _MyPageState extends State<MyPage> {
       );
       // (UserInfo.hand.raised, resgistered);
 
-      if (kDebugMode) {
-        print(result);
-        print(result.runtimeType);
-      }
+      printDebug(result);
+      printDebug(result.runtimeType);
 
       final bool handRaised = result["handRaised"];
       final bool registered = result["registered"];
 
       if (registered == false || result == 'null') {
+        currentMeetingRoom = emptyRoom;
         throw const FormatException("Not in a Room");
       }
 
@@ -482,9 +525,7 @@ class _MyPageState extends State<MyPage> {
       }
     } catch (e) {
       // Handle the exception here
-      if (kDebugMode) {
-        print('Error occurred while running JavaScript: $e');
-      }
+      printDebug('Error occurred while running JavaScript: $e');
       return Hand.noHand;
     }
   }
@@ -496,9 +537,8 @@ class _MyPageState extends State<MyPage> {
         if (apply) {
           setState(() => handStatus = currentHandState);
         }
-        if (kDebugMode) {
-          print("Apply $currentHandState");
-        }
+        printDebug("Apply $currentHandState");
+
         return Apply.changed;
       } else {
         return Apply.unchanged;
@@ -519,16 +559,11 @@ class _MyPageState extends State<MyPage> {
         } else {
           if (handStatus == Hand.lowered) {
             webViewController.runJavaScript("MainScreen.raise('S');");
-            //Wait the change of runJavaScript
             waitPageChangedByHand([Hand.raised]).then(
               (_) => setState(() => handStatus = Hand.raised),
             );
           } else if (handStatus == Hand.raised) {
             webViewController.runJavaScript("MainScreen.down();");
-            //Wait the change of runJavaScript
-            waitPageChangedByHand([Hand.lowered]).then(
-              (_) => setState(() => handStatus = Hand.lowered),
-            );
             waitPageChangedByHand([Hand.lowered]).then(
               (_) => setState(() => handStatus = Hand.lowered),
             );
@@ -574,9 +609,7 @@ class _MyPageState extends State<MyPage> {
       await Future.delayed(const Duration(milliseconds: 100));
       totalTimeWaited += 100;
       if (totalTimeWaited >= maxWaitTime) {
-        if (kDebugMode) {
-          print('Timed out while waiting for hand change');
-        }
+        printDebug('Timed out while waiting for hand change');
         return;
       }
     }
@@ -588,14 +621,13 @@ class _MyPageState extends State<MyPage> {
     const int maxWaitTime = 10000; // 10 seconds in milliseconds
     int origin;
     while (true) {
-      try {
-        origin = await webViewController.runJavaScriptReturningResult(
-          'document.getElementById("origin")?.children.length',
-        ) as int;
-      } on Exception catch (e) {
-        if (kDebugMode) {
-          print(e);
-        }
+      Object result = await webViewController.runJavaScriptReturningResult(
+        'document.getElementById("origin")?.children.length',
+      );
+      if (result.runtimeType == int) {
+        origin = result as int;
+      } else {
+        //String == "null" or else
         origin = -1;
       }
 
@@ -612,9 +644,7 @@ class _MyPageState extends State<MyPage> {
       await Future.delayed(const Duration(milliseconds: 100));
       totalTimeWaited += 100;
       if (totalTimeWaited >= maxWaitTime) {
-        if (kDebugMode) {
-          print('Timed out while waiting for Tohru Loading');
-        }
+        printDebug('Timed out while waiting for Tohru Loading');
         return LoadingState.loadingScreen;
       }
     }
