@@ -32,3 +32,4 @@ doc/api/
 .idea/
 android/.idea/
 build.bat
+.idea/workspace.xml
