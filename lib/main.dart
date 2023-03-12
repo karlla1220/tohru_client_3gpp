@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'tohru_webview.dart';
@@ -515,41 +514,23 @@ class _MyPageState extends State<MyPage> {
   Hand handStatus = Hand.noHand;
 
   Future<Hand> checkHandStatus() async {
-    try {
-      // var result = await webViewController.runJavaScriptReturningResult(
-      // '(downButton =>  downButton.childNodes.length > 0 ? true : (downButton !== null ? false : null))(document.getElementById("downbutton"));');
+    final results = await Future.wait([
+      webViewController.runJavaScriptReturningResult(
+          "Boolean(typeof registered === 'boolean' ? registered : false)"),
+      webViewController.runJavaScriptReturningResult(
+          "Boolean(typeof UserInfo?.hand?.raised === 'boolean' ? UserInfo?.hand?.raised : false)"),
+    ]);
+    final bool registered = results[0] as bool;
+    final bool handRaised = results[1] as bool;
 
-      final result = await webViewController.runJavaScriptReturningResult('''
-      (() => {
-        return {
-          registered: registered,
-          handRaised: UserInfo.hand.raised,
-        };
-        })()
-      ''').then(
-        (value) => jsonDecode(value as String),
-      );
-      // (UserInfo.hand.raised, resgistered);
-
-      printDebug(result);
-      printDebug(result.runtimeType);
-
-      final bool handRaised = result["handRaised"];
-      final bool registered = result["registered"];
-
-      if (registered == false || result == 'null') {
-        throw const FormatException("Not in a Room");
-      } else {}
-
-      if (handRaised) {
-        return Hand.raised;
-      } else {
-        return Hand.lowered;
-      }
-    } catch (e) {
-      // Handle the exception here
-      printDebug('Error occurred while running JavaScript: $e');
+    if (registered == false) {
       return Hand.noHand;
+    } else {}
+
+    if (handRaised) {
+      return Hand.raised;
+    } else {
+      return Hand.lowered;
     }
   }
 
@@ -617,10 +598,10 @@ class _MyPageState extends State<MyPage> {
     int totalTimeWaited = 0;
     const int maxWaitTime = 3000; // 3 seconds in milliseconds
     while (true) {
-      var downbutton = await webViewController.runJavaScriptReturningResult(
-        'document.getElementById("downbutton")?.children.length',
-      );
-      int buttonStatus = downbutton.runtimeType != int ? -1 : downbutton as int;
+      int buttonStatus = (await webViewController.runJavaScriptReturningResult(
+        'document.getElementById("downbutton")?.children?.length ?? -1',
+      ) as num)
+          .toInt();
 
       if (targetHands.contains(Hand.noHand) && buttonStatus < 0) {
         break;
@@ -651,17 +632,12 @@ class _MyPageState extends State<MyPage> {
       {final LoadingState target = LoadingState.loadingScreen}) async {
     int totalTimeWaited = 0;
     const int maxWaitTime = 10000; // 10 seconds in milliseconds
-    int origin;
+    int origin = -1;
     while (true) {
-      Object result = await webViewController.runJavaScriptReturningResult(
-        'document.getElementById("origin")?.children.length',
-      );
-      if (result.runtimeType == int) {
-        origin = result as int;
-      } else {
-        //String == "null" or else
-        origin = -1;
-      }
+      origin = (await webViewController.runJavaScriptReturningResult(
+        'document.getElementById("origin")?.children?.length ?? -1',
+      ) as num)
+          .toInt();
 
       if (target == LoadingState.loadingScreen && origin > 0) {
         break;
