@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter/material.dart';
 
 class TohruWebView {
   static final TohruWebView _instance = TohruWebView._(); //Singletone
@@ -61,6 +62,7 @@ class TohruWebView {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..enableZoom(true)
       ..setNavigationDelegate(navDelegate)
+      ..setBackgroundColor(Colors.white)
       ..loadRequest(Uri.parse(tohruURL));
   }
 
