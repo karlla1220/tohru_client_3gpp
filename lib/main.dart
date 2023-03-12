@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'tohru_webview.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webviewx/webviewx.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'tohru.dart';
 import 'preference_manager.dart';
@@ -84,8 +84,6 @@ class _MyPageState extends State<MyPage> {
     super.dispose();
   }
 
-  late final WebViewController webViewController;
-
   void _loadAll() {
     userName = PreferencesManager.userName;
     _prefix = PreferencesManager.prefix;
@@ -98,6 +96,8 @@ class _MyPageState extends State<MyPage> {
     _loadAll();
   }
 
+  late final WebViewXController webviewController;
+
   @override
   void initState() {
     printDebug("Perfrom init on main widget!!!");
@@ -107,7 +107,7 @@ class _MyPageState extends State<MyPage> {
       _loadAll();
     });
 
-    webViewController = TohruWebView(
+    webViewController = TohruWebViewController(
       onProgress: (int progress) {
         // Update loading bar.
         setState(() {
