@@ -28,10 +28,10 @@ class TohruWebView {
 
   TohruWebView._() {
     final navDelegate = NavigationDelegate(
-      onProgress: (int progress) {
-        onProgress(progress);
-        // Update loading bar.
-      },
+      // onProgress: (int progress) {
+      //   onProgress(progress);
+      //   // Update loading bar.
+      // }, //not supported in windows environment
       onPageStarted: (String url) async {
         if (kDebugMode) {
           print("Start to load Webpage");
@@ -60,7 +60,7 @@ class TohruWebView {
     );
     webViewController = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..enableZoom(true)
+      // ..enableZoom(true)
       ..setNavigationDelegate(navDelegate)
       ..setBackgroundColor(Colors.white)
       ..loadRequest(Uri.parse(tohruURL));
