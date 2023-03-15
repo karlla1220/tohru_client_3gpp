@@ -66,6 +66,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
@@ -97,20 +98,19 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
 
-# flutter_icons:
-#  image_path: "assets/icon/icon.png"
-#  android: "launcher_icon"
-#  ios: true
+flutter_icons:
+ android: false
+ ios: false
 #  min_sdk_android: 21 # android min sdk min:16, default 21
-#  web:
-#    generate: true
-#    image_path: "path/to/image.png"
+ web:
+   generate: false
+   image_path: "IconKitchen-Output/web/icon-512.png"
 #    background_color: "#hexcode"
 #    theme_color: "#hexcode"
-#  windows:
-#    generate: true
-#    image_path: "path/to/image.png"
-#    icon_size: 48 # min:48, max:256, default: 48
-#  macos:
-#    generate: true
-#    image_path: "path/to/image.png"
+ windows:
+   generate: true
+   image_path: "IconKitchen-Output/web/icon-512.png"
+   icon_size: 256 # min:48, max:256, default: 48
+ macos:
+   generate: false
+   image_path: "IconKitchen-Output/web/icon-512.png"

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'tohru_webview.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'tohru.dart';
 import 'preference_manager.dart';
@@ -88,7 +87,7 @@ class _MyPageState extends State<MyPage> {
     super.dispose();
   }
 
-  late final WebViewController webViewController;
+  late final TohruWebView tohruWebView;
 
   void _loadAll() {
     userName = PreferencesManager.userName;
@@ -111,7 +110,7 @@ class _MyPageState extends State<MyPage> {
       _loadAll();
     });
 
-    webViewController = TohruWebView(
+    tohruWebView = TohruWebView(
       onProgress: (int progress) {
         // Update loading bar.
         // setState(() {
@@ -144,7 +143,7 @@ class _MyPageState extends State<MyPage> {
           );
         }
       },
-    ).webViewController;
+    );
 
     printDebug("End init on main widget!!!");
   }
@@ -381,7 +380,7 @@ class _MyPageState extends State<MyPage> {
                           visible: !hideWebView,
                           child: Expanded(
                               child: Stack(children: [
-                            WebViewWidget(controller: webViewController),
+                            tohruWebView.getWebView(),
                             if (_isLoading)
                               const Center(
                                 child: CircularProgressIndicator(),
@@ -439,10 +438,10 @@ class _MyPageState extends State<MyPage> {
       //Do nothing. "setState()" already done in applyMeetingRoomStatus();
     } else if (handStatus != Hand.noHand) {
       if (handStatus == Hand.raised) {
-        webViewController.runJavaScript("MainScreen.down();");
+        tohruWebView.runJavaScript("MainScreen.down();");
         await waitPageChangedByHand([Hand.lowered]);
       }
-      webViewController
+      tohruWebView
           .runJavaScript('MainScreen.logOut();')
           .then(
             // wait until screen change
@@ -514,11 +513,11 @@ class _MyPageState extends State<MyPage> {
       if (currentMeetingRoom != emptyRoom) {
         if (currentMeetingRoom != room) {
           if (handStatus == Hand.raised) {
-            webViewController.runJavaScript("MainScreen.down();");
+            tohruWebView.runJavaScript("MainScreen.down();");
             await waitPageChangedByHand([Hand.lowered]);
           }
 
-          await webViewController.runJavaScript('MainScreen.logOut();');
+          await tohruWebView.runJavaScript('MainScreen.logOut();');
           //wait logout finish
           await waitTohruLoading(target: LoadingState.loginWindow);
           await waitPageChangedByHand([Hand.noHand]);
@@ -534,7 +533,7 @@ class _MyPageState extends State<MyPage> {
       }
     }
     if (loginNecessary == true) {
-      await webViewController.runJavaScript('''
+      await tohruWebView.runJavaScript('''
             document.getElementById("meetingfield").value ="${room.name}";
             document.getElementById("namefield").value ="$_prefix $userName";
             WelcomeScreen.join();
@@ -553,9 +552,9 @@ class _MyPageState extends State<MyPage> {
 
   Future<Hand> checkHandStatus() async {
     final results = await Future.wait([
-      webViewController.runJavaScriptReturningResult(
+      tohruWebView.runJavaScriptReturningResult(
           "Boolean(typeof registered === 'boolean' ? registered : false)"),
-      webViewController.runJavaScriptReturningResult(
+      tohruWebView.runJavaScriptReturningResult(
           "Boolean(typeof UserInfo?.hand?.raised === 'boolean' ? UserInfo?.hand?.raised : false)"),
     ]);
     final bool registered = results[0].toString().toLowerCase() == "true";
@@ -609,12 +608,12 @@ class _MyPageState extends State<MyPage> {
           //
         } else {
           if (handStatus == Hand.lowered) {
-            webViewController.runJavaScript("MainScreen.raise('S');");
+            tohruWebView.runJavaScript("MainScreen.raise('S');");
             waitPageChangedByHand([Hand.raised]).then(
               (_) => setState(() => handStatus = Hand.raised),
             );
           } else if (handStatus == Hand.raised) {
-            webViewController.runJavaScript("MainScreen.down();");
+            tohruWebView.runJavaScript("MainScreen.down();");
             waitPageChangedByHand([Hand.lowered]).then(
               (_) => setState(() => handStatus = Hand.lowered),
             );
@@ -623,7 +622,7 @@ class _MyPageState extends State<MyPage> {
 
         break;
       case 1: // Refresh
-        webViewController.reload();
+        tohruWebView.reload();
 
         break;
       case 2: // Room ID
@@ -636,7 +635,7 @@ class _MyPageState extends State<MyPage> {
     int totalTimeWaited = 0;
     const int maxWaitTime = 3000; // 3 seconds in milliseconds
     while (true) {
-      var ret = await webViewController.runJavaScriptReturningResult(
+      var ret = await tohruWebView.runJavaScriptReturningResult(
         'document.getElementById("downbutton")?.children?.length ?? -1',
       );
       int buttonStatus = int.parse(ret.toString());
@@ -644,10 +643,9 @@ class _MyPageState extends State<MyPage> {
       if (targetHands.contains(Hand.noHand) && buttonStatus < 0) {
         break;
       } else {
-        bool isHandListLoaded =
-            (await webViewController.runJavaScriptReturningResult(
-                    "(document.getElementById('speaker')?.textContent ?? 'LOADING...') !== 'LOADING...'")) ==
-                "true";
+        bool isHandListLoaded = (await tohruWebView.runJavaScriptReturningResult(
+                "(document.getElementById('speaker')?.textContent ?? 'LOADING...') !== 'LOADING...'")) ==
+            "true";
         if (isHandListLoaded) {
           if (targetHands.contains(Hand.lowered) && buttonStatus == 0) {
             break;
@@ -672,7 +670,7 @@ class _MyPageState extends State<MyPage> {
     const int maxWaitTime = 10000; // 10 seconds in milliseconds
     int origin = -1;
     while (true) {
-      var ret = await webViewController.runJavaScriptReturningResult(
+      var ret = await tohruWebView.runJavaScriptReturningResult(
         'document.getElementById("origin")?.children?.length ?? -1',
       );
 

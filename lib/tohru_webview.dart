@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:flutter/material.dart';
 
+//모든 webview 종속성을 이곳에서 관리
+
 class TohruWebView {
   static final TohruWebView _instance = TohruWebView._(); //Singletone
   static const String tohruURL = 'https://tohru.3gpp.org';
@@ -9,6 +11,12 @@ class TohruWebView {
   late final Function(String) onPageStarted;
   late final Function(String) onPageFinished;
   late final WebViewController webViewController;
+
+  //fuction to create webview widget
+  WebViewWidget getWebView() {
+    WebViewWidget webView = WebViewWidget(controller: webViewController);
+    return webView;
+  }
 
   factory TohruWebView({
     required Function(int) onProgress,
@@ -88,5 +96,10 @@ class TohruWebView {
 
   void setNavigationDelegate(NavigationDelegate delegate) {
     webViewController.setNavigationDelegate(delegate);
+  }
+
+  //reload function on webview
+  Future<void> reload() async {
+    webViewController.reload();
   }
 }
