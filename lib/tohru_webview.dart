@@ -1,8 +1,7 @@
 import 'dart:async';
 
-import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
-// import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_windows/webview_windows.dart';
+import 'package:tohru_client_3gpp/main.dart';
+import 'package:webview_windows/webview_windows.dart' as ww;
 import 'package:flutter/material.dart';
 
 //모든 webview 종속성을 이곳에서 관리
@@ -12,7 +11,7 @@ class TohruWebView {
   final Function(int) onProgress;
   final Function(String) onPageStarted;
   final Function(String) onPageFinished;
-  final WebviewController webViewController = WebviewController();
+  final ww.WebviewController webViewController = ww.WebviewController();
 
   //dispose function
   void dispose() {
@@ -31,27 +30,30 @@ class TohruWebView {
 
   //fuction to create webview widget
   Widget createWebView() {
-    return Webview(webViewController);
+    return ww.Webview(webViewController);
   }
 
   void webViewinit() async {
-    // webViewController.loadingState.listen((event) {
-    //   if (event == LoadingState.loading) {
-    //     // webViewController.url.last.then((value) {
-    //     onPageStarted(tohruURL);
-    //     // });
-    //   } else if (event == LoadingState.navigationCompleted) {
-    //     // webViewController.url.last.then((value) {
-    //     onPageFinished(tohruURL);
-    //     // });
-    //   }
-    // });
+    webViewController.loadingState.listen((event) {
+      if (event == ww.LoadingState.loading) {
+        // webViewController.url.last.then((value) {
+        onPageStarted(tohruURL);
+        // });
+      } else if (event == ww.LoadingState.navigationCompleted) {
+        // webViewController.url.last.then((value) {
+        onPageFinished(tohruURL);
+        // });
+      }
+    });
 
     await webViewController.initialize();
+    printDebug("End of webview init");
     await webViewController.setBackgroundColor(Colors.white);
-    await webViewController.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
-
-    loadRequest(Uri.parse(tohruURL));
+    await webViewController
+        .setPopupWindowPolicy(ww.WebviewPopupWindowPolicy.deny);
+    printDebug("start of load request");
+    await loadRequest(Uri.parse(tohruURL));
+    printDebug("end of load request");
   }
 
   Future<void> loadRequest(Uri url) async {
