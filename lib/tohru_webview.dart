@@ -1,105 +1,87 @@
-import 'package:flutter/foundation.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'dart:async';
+
+import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
+// import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_windows/webview_windows.dart';
 import 'package:flutter/material.dart';
 
 //모든 webview 종속성을 이곳에서 관리
 
 class TohruWebView {
-  static final TohruWebView _instance = TohruWebView._(); //Singletone
   static const String tohruURL = 'https://tohru.3gpp.org';
-  late final Function(int) onProgress;
-  late final Function(String) onPageStarted;
-  late final Function(String) onPageFinished;
-  late final WebViewController webViewController;
+  final Function(int) onProgress;
+  final Function(String) onPageStarted;
+  final Function(String) onPageFinished;
+  final WebviewController webViewController = WebviewController();
+
+  //dispose function
+  void dispose() {
+    webViewController.dispose();
+  }
+
+  TohruWebView({
+    required this.onProgress,
+    required this.onPageStarted,
+    required this.onPageFinished,
+  }) {
+    webViewinit();
+  }
+
+  //constructor of this class
 
   //fuction to create webview widget
-  WebViewWidget getWebView() {
-    WebViewWidget webView = WebViewWidget(controller: webViewController);
-    return webView;
+  Widget createWebView() {
+    return Webview(webViewController);
   }
 
-  factory TohruWebView({
-    required Function(int) onProgress,
-    required Function(String) onPageStarted,
-    required Function(String) onPageFinished,
-  }) {
-    _instance
-      ..onProgress = onProgress
-      ..onPageStarted = onPageStarted
-      ..onPageFinished = onPageFinished;
-    return _instance;
-  }
+  void webViewinit() async {
+    // webViewController.loadingState.listen((event) {
+    //   if (event == LoadingState.loading) {
+    //     // webViewController.url.last.then((value) {
+    //     onPageStarted(tohruURL);
+    //     // });
+    //   } else if (event == LoadingState.navigationCompleted) {
+    //     // webViewController.url.last.then((value) {
+    //     onPageFinished(tohruURL);
+    //     // });
+    //   }
+    // });
 
-  static TohruWebView getInstance() {
-    return _instance;
-  }
+    await webViewController.initialize();
+    await webViewController.setBackgroundColor(Colors.white);
+    await webViewController.setPopupWindowPolicy(WebviewPopupWindowPolicy.deny);
 
-  TohruWebView._() {
-    final navDelegate = NavigationDelegate(
-      // onProgress: (int progress) {
-      //   onProgress(progress);
-      //   // Update loading bar.
-      // }, //not supported in windows environment
-      onPageStarted: (String url) async {
-        if (kDebugMode) {
-          print("Start to load Webpage");
-        }
-        onPageStarted(url);
-      },
-      onPageFinished: (String url) async {
-        if (kDebugMode) {
-          print("Finish to load Webpage");
-        }
-        onPageFinished(url);
-      },
-      onWebResourceError: (WebResourceError error) {},
-      onNavigationRequest: (NavigationRequest request) {
-        if (!request.url.startsWith(tohruURL)) {
-          if (kDebugMode) {
-            print("Not tohru. Stop to URL");
-          }
-          return NavigationDecision.prevent;
-        }
-        if (kDebugMode) {
-          print("It is tohru. go to URL");
-        }
-        return NavigationDecision.navigate;
-      },
-    );
-    webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      // ..enableZoom(true)
-      ..setNavigationDelegate(navDelegate)
-      ..setBackgroundColor(Colors.white)
-      ..loadRequest(Uri.parse(tohruURL));
+    loadRequest(Uri.parse(tohruURL));
   }
 
   Future<void> loadRequest(Uri url) async {
-    webViewController.loadRequest(url);
+    // webViewController.loadRequest(url);
+    await webViewController.loadUrl(url.toString());
   }
 
   Future<Object> runJavaScriptReturningResult(String javascript) async {
-    return webViewController.runJavaScriptReturningResult(javascript);
+    return await webViewController.executeScript(javascript);
   }
 
   Future<void> runJavaScript(String javascript) async {
-    return webViewController.runJavaScript(javascript);
+    await webViewController.executeScript(javascript);
   }
 
-  void setJavaScriptMode(JavaScriptMode? mode) {
-    webViewController.setJavaScriptMode(mode ?? JavaScriptMode.disabled);
-  }
+  // void setJavaScriptMode(JavaScriptMode? mode) {
+  // webViewController.setJavaScriptMode(mode ?? JavaScriptMode.disabled);
+  // }
 
-  void enableZoom(bool enabled) {
-    webViewController.enableZoom(enabled);
-  }
+  // void enableZoom(bool enabled) {
+  //   // webViewController.enableZoom(enabled);
+  // }
 
-  void setNavigationDelegate(NavigationDelegate delegate) {
-    webViewController.setNavigationDelegate(delegate);
-  }
+  // void setNavigationDelegate(NavigationDelegate delegate) {
+  //   webViewController.setNavigationDelegate(delegate);
+  //   webViewController.
+  // }
 
   //reload function on webview
   Future<void> reload() async {
-    webViewController.reload();
+    await webViewController.reload();
   }
 }

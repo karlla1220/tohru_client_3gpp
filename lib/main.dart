@@ -5,10 +5,8 @@ import 'tohru_webview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'tohru.dart';
 import 'preference_manager.dart';
-import 'package:webview_win_floating/webview.dart';
 
 Future<void> main() async {
-  WindowsWebViewPlatform.registerWith();
   runApp(const MyApp());
 }
 
@@ -72,14 +70,9 @@ class _MyPageState extends State<MyPage> {
   @override
   void dispose() {
     printDebug("Perfrom Dispose on main widget!!!");
-    // if (handStatus == Hand.raised) {
-    //   webViewController.runJavaScript("MainScreen.down();");
-    // }
-    // waitPageChangedByHand([Hand.noHand, Hand.lowered]).then(
-    //   (_) => webViewController.runJavaScript('MainScreen.logOut();'),
-    // );
 
     logOutFromRoomWithLoweringHand();
+    tohruWebView.dispose();
 
     _saveAll();
 
@@ -144,290 +137,284 @@ class _MyPageState extends State<MyPage> {
         }
       },
     );
+    // const String tohruURL = 'https://tohru.3gpp.org';
+    // tohruWebView.loadRequest(Uri.parse(tohruURL));
 
     printDebug("End init on main widget!!!");
   }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Drawer(
-          width: 250,
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: <Widget>[
-                  Container(
-                    height: 100,
-                    decoration: const BoxDecoration(
-                      color: Colors.black,
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Rooms',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                        ),
+    return Scaffold(
+      key: scaffoldKey,
+      // appBar: AppBar(),
+      drawer: Drawer(
+        width: 250,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+                Container(
+                  height: 100,
+                  decoration: const BoxDecoration(
+                    color: Colors.black,
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Rooms',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
                       ),
                     ),
                   ),
-                ] +
-                rooms
-                    .where((room) => room.available)
-                    .map((room) => ListTile(
-                          title: Text(room.name),
-                          leading: const Icon(Icons.meeting_room),
-                          // Row(
-                          //     mainAxisAlignment: MainAxisAlignment.start,
-                          //   children: const <Widget>[ Icon(Icons.edit),SizedBox(width: 1.0),Icon(Icons.meeting_room) ],
-                          // ),
+                ),
+              ] +
+              rooms
+                  .where((room) => room.available)
+                  .map((room) => ListTile(
+                        title: Text(room.name),
+                        leading: const Icon(Icons.meeting_room),
+                        // Row(
+                        //     mainAxisAlignment: MainAxisAlignment.start,
+                        //   children: const <Widget>[ Icon(Icons.edit),SizedBox(width: 1.0),Icon(Icons.meeting_room) ],
+                        // ),
 
-                          onTap: () async {
-                            // Navigator.pop(context);
-                            inputMeetingAndName(room);
-                          },
-                        ))
-                    .toList() +
-                <Widget>[
-                  const Divider(),
-                  ListTile(
-                    leading: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const <Widget>[
-                        Icon(Icons.edit),
-                        SizedBox(width: 8.0),
-                        Icon(Icons.person),
-                      ],
-                    ),
-                    title: const Text('Set User Name'),
-                    subtitle: Text('$_prefix $userName'),
-                    onTap: () async {
-                      setState(() {
-                        hideWebView = true;
-                      });
-                      await showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          final userNameController =
-                              TextEditingController(text: userName);
-                          return StatefulBuilder(
-                            builder: (BuildContext context, setState) {
-                              return AlertDialog(
-                                title: const Text("Set User Name"),
-                                content: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    RadioListTile(
-                                      title: const Text('F2F'),
-                                      value: 'F2F',
-                                      groupValue: _selectedOption,
-                                      toggleable: true,
-                                      dense: true,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _selectedOption = value ?? "None";
-                                          _prefix =
-                                              _prefix != '[F]' ? '[F]' : "";
-                                          PreferencesManager.prefix = _prefix;
-                                          PreferencesManager.selectedOption =
-                                              _selectedOption;
-                                        });
-                                      },
-                                    ),
-                                    RadioListTile(
-                                      title: const Text('Remote'),
-                                      value: 'Remote',
-                                      groupValue: _selectedOption,
-                                      toggleable: true,
-                                      dense: true,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _selectedOption = value ?? "None";
-                                          _prefix =
-                                              _prefix != '[R]' ? '[R]' : "";
-                                          PreferencesManager.prefix = _prefix;
-                                          PreferencesManager.selectedOption =
-                                              _selectedOption;
-                                        });
-                                      },
-                                    ),
-                                    TextFormField(
-                                      controller: userNameController,
-                                      autofocus: true,
-                                      decoration: InputDecoration(
-                                        labelText: "User Name",
-                                        hintText: "Enter your user name",
-                                        prefixText: _prefix,
-                                      ),
-                                      onFieldSubmitted: (value) {
-                                        setState(() {
-                                          userName = value;
-                                        });
-                                        // Navigator.pop(context);
-                                      },
-                                    ),
-                                  ],
-                                ),
-                                actions: <Widget>[
-                                  ElevatedButton(
-                                    child: const Text("Set"),
-                                    onPressed: () {
+                        onTap: () async {
+                          // Navigator.pop(context);
+                          inputMeetingAndName(room);
+                        },
+                      ))
+                  .toList() +
+              <Widget>[
+                const Divider(),
+                ListTile(
+                  leading: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const <Widget>[
+                      Icon(Icons.edit),
+                      SizedBox(width: 8.0),
+                      Icon(Icons.person),
+                    ],
+                  ),
+                  title: const Text('Set User Name'),
+                  subtitle: Text('$_prefix $userName'),
+                  onTap: () async {
+                    setState(() {
+                      hideWebView = true;
+                    });
+                    await showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        final userNameController =
+                            TextEditingController(text: userName);
+                        return StatefulBuilder(
+                          builder: (BuildContext context, setState) {
+                            return AlertDialog(
+                              title: const Text("Set User Name"),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  RadioListTile(
+                                    title: const Text('F2F'),
+                                    value: 'F2F',
+                                    groupValue: _selectedOption,
+                                    toggleable: true,
+                                    dense: true,
+                                    onChanged: (value) {
                                       setState(() {
-                                        userName = userNameController.text;
-                                        PreferencesManager.userName = userName;
+                                        _selectedOption = value ?? "None";
+                                        _prefix = _prefix != '[F]' ? '[F]' : "";
+                                        PreferencesManager.prefix = _prefix;
+                                        PreferencesManager.selectedOption =
+                                            _selectedOption;
                                       });
-                                      Navigator.pop(context);
                                     },
                                   ),
-                                  TextButton(
-                                    child: const Text("Cancel"),
-                                    onPressed: () {
-                                      Navigator.pop(context);
+                                  RadioListTile(
+                                    title: const Text('Remote'),
+                                    value: 'Remote',
+                                    groupValue: _selectedOption,
+                                    toggleable: true,
+                                    dense: true,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _selectedOption = value ?? "None";
+                                        _prefix = _prefix != '[R]' ? '[R]' : "";
+                                        PreferencesManager.prefix = _prefix;
+                                        PreferencesManager.selectedOption =
+                                            _selectedOption;
+                                      });
+                                    },
+                                  ),
+                                  TextFormField(
+                                    controller: userNameController,
+                                    autofocus: true,
+                                    decoration: InputDecoration(
+                                      labelText: "User Name",
+                                      hintText: "Enter your user name",
+                                      prefixText: _prefix,
+                                    ),
+                                    onFieldSubmitted: (value) {
+                                      setState(() {
+                                        userName = value;
+                                      });
+                                      // Navigator.pop(context);
                                     },
                                   ),
                                 ],
-                              );
-                            },
-                          );
-                        },
-                      );
+                              ),
+                              actions: <Widget>[
+                                ElevatedButton(
+                                  child: const Text("Set"),
+                                  onPressed: () {
+                                    setState(() {
+                                      userName = userNameController.text;
+                                      PreferencesManager.userName = userName;
+                                    });
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                                TextButton(
+                                  child: const Text("Cancel"),
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    );
+                    setState(() {
+                      hideWebView = false;
+                    });
+                  },
+                ),
+                ListTile(
+                  leading: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const <Widget>[
+                      Icon(Icons.edit),
+                      SizedBox(width: 8.0),
+                      Icon(Icons.meeting_room),
+                    ],
+                  ),
+                  title: const Text('Set meeting room ID'),
+                  onTap: () async {
+                    setState(() {
+                      hideWebView = true;
+                    });
+                    List<MeetingRoom>? updatedRooms = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (BuildContext context) =>
+                            MeetingRoomsConfigWidget(rooms: rooms),
+                      ),
+                    );
+                    if (updatedRooms != null) {
+                      setState(() {
+                        rooms = updatedRooms;
+                        PreferencesManager.rooms = rooms;
+                        hideWebView = false;
+                      });
+                    } else {
                       setState(() {
                         hideWebView = false;
                       });
-                    },
-                  ),
-                  ListTile(
-                    leading: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const <Widget>[
-                        Icon(Icons.edit),
-                        SizedBox(width: 8.0),
-                        Icon(Icons.meeting_room),
-                      ],
-                    ),
-                    title: const Text('Set meeting room ID'),
-                    onTap: () async {
+                    }
+                  },
+                ),
+                ListTile(
+                    leading: const Icon(Icons.restart_alt),
+                    title: const Text('Set to Default'),
+                    subtitle: const Text('Name and Rooms'),
+                    onTap: () {
                       setState(() {
                         hideWebView = true;
                       });
-                      List<MeetingRoom>? updatedRooms = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (BuildContext context) =>
-                              MeetingRoomsConfigWidget(rooms: rooms),
-                        ),
-                      );
-                      if (updatedRooms != null) {
-                        setState(() {
-                          rooms = updatedRooms;
-                          PreferencesManager.rooms = rooms;
-                          hideWebView = false;
-                        });
-                      } else {
-                        setState(() {
-                          hideWebView = false;
-                        });
-                      }
-                    },
-                  ),
-                  ListTile(
-                      leading: const Icon(Icons.restart_alt),
-                      title: const Text('Set to Default'),
-                      subtitle: const Text('Name and Rooms'),
+                      _showConfirmationDialog();
+                    }),
+                const Divider(),
+                Visibility(
+                  visible: (handStatus != Hand.noHand),
+                  child: ListTile(
+                      leading: const Icon(Icons.exit_to_app),
+                      title: const Text('Log-out from Meeting room'),
+                      subtitle: const Text('Hand will be lowered'),
                       onTap: () {
-                        setState(() {
-                          hideWebView = true;
-                        });
-                        _showConfirmationDialog();
+                        logOutFromRoomWithLoweringHand();
+                        // Navigator.pop(context);
                       }),
-                  const Divider(),
-                  Visibility(
-                    visible: (handStatus != Hand.noHand),
-                    child: ListTile(
-                        leading: const Icon(Icons.exit_to_app),
-                        title: const Text('Log-out from Meeting room'),
-                        subtitle: const Text('Hand will be lowered'),
-                        onTap: () {
-                          logOutFromRoomWithLoweringHand();
-                          // Navigator.pop(context);
-                        }),
-                  ),
-                ],
-          ),
-        ),
-        Expanded(
-          child: Scaffold(
-            key: scaffoldKey,
-            // appBar: AppBar(),
-            body: Container(
-              //safeArea Color
-              color: Colors.black,
-              child: SafeArea(
-                child: Container(
-                    color: Colors.white,
-                    child: Column(
-                      children: [
-                        // Visibility(
-                        //   visible: _isLoading,
-                        //   child: LinearProgressIndicator(
-                        //     color: Colors.red,
-                        //     // minHeight: 10,
-                        //     value: _progress / 100,
-                        //   ),
-                        // ),
-                        Visibility(
-                          visible: !hideWebView,
-                          child: Expanded(
-                              child: Stack(children: [
-                            tohruWebView.getWebView(),
-                            if (_isLoading)
-                              const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                          ])),
-                        ),
-                      ],
-                    )),
-              ),
-            ),
-
-            bottomNavigationBar: BottomNavigationBar(
-              //has to be larger than 2
-              items: <BottomNavigationBarItem>[
-                BottomNavigationBarItem(
-                  icon: handStatus == Hand.raised
-                      ? const Icon(Icons.person)
-                      : handStatus == Hand.lowered
-                          ? const Icon(Icons.front_hand)
-                          : const Icon(Icons.do_disturb_on_outlined),
-                  label: handStatus == Hand.raised
-                      ? "Lower Hand"
-                      : handStatus == Hand.lowered
-                          ? "Raise Hand"
-                          : "Not in Room",
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.refresh),
-                  label: 'Refresh',
-                ),
-                const BottomNavigationBarItem(
-                  icon: Icon(Icons.meeting_room),
-                  label: 'Rooms',
                 ),
               ],
-
-              currentIndex: _selectedIndex,
-              onTap: (index) async {
-                await _onItemTapped(index);
-                setState(() => _selectedIndex = 0);
-              },
-              selectedItemColor: Colors.black,
-              unselectedItemColor: Colors.grey,
-            ),
-          ),
         ),
-      ],
+      ),
+      body: Container(
+        //safeArea Color
+        color: Colors.black,
+        child: SafeArea(
+          child: Container(
+              color: Colors.white,
+              child: Column(
+                children: [
+                  // Visibility(
+                  //   visible: _isLoading,
+                  //   child: LinearProgressIndicator(
+                  //     color: Colors.red,
+                  //     // minHeight: 10,
+                  //     value: _progress / 100,
+                  //   ),
+                  // ),
+                  Visibility(
+                    visible: !hideWebView,
+                    child: Expanded(
+                        child: Stack(children: [
+                      tohruWebView.createWebView(),
+                      if (_isLoading)
+                        const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                    ])),
+                  ),
+                ],
+              )),
+        ),
+      ),
+
+      bottomNavigationBar: BottomNavigationBar(
+        //has to be larger than 2
+        items: <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: handStatus == Hand.raised
+                ? const Icon(Icons.person)
+                : handStatus == Hand.lowered
+                    ? const Icon(Icons.front_hand)
+                    : const Icon(Icons.do_disturb_on_outlined),
+            label: handStatus == Hand.raised
+                ? "Lower Hand"
+                : handStatus == Hand.lowered
+                    ? "Raise Hand"
+                    : "Not in Room",
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.refresh),
+            label: 'Refresh',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.meeting_room),
+            label: 'Rooms',
+          ),
+        ],
+
+        currentIndex: _selectedIndex,
+        onTap: (index) async {
+          await _onItemTapped(index);
+          setState(() => _selectedIndex = 0);
+        },
+        selectedItemColor: Colors.black,
+        unselectedItemColor: Colors.grey,
+      ),
     );
   }
 
