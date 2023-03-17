@@ -120,7 +120,10 @@ class _MyPageState extends State<MyPage> {
       onPageStarted: (String url) async {
         // Set false if the page finished loading.
         printDebug("Start to load Webpage");
-        setState(() => {_isLoading = true});
+        setState(() {
+          // hideWebView = true;
+          _isLoading = true;
+        });
       },
       onPageFinished: (String url) async {
         // Set true if the page finished loading.
@@ -132,6 +135,7 @@ class _MyPageState extends State<MyPage> {
         printDebug("end to wait to load ");
         setState(() {
           _isLoading = false;
+          hideWebView = false;
         });
         if (currentPage == LoadingState.inRoom) {
           waitPageChangedByHand([Hand.lowered, Hand.raised]).then(
@@ -153,17 +157,40 @@ class _MyPageState extends State<MyPage> {
     return Scaffold(
       key: scaffoldKey,
       // appBar: AppBar(),
+      onDrawerChanged: (isOpened) => {
+        if (isOpened)
+          {
+            setState(() {
+              hideWebView = true;
+            })
+          }
+        else
+          {
+            //delay to wait for drawer close animation
+            //wait 0.2 sec and then set hideWebView to false
+            Future.delayed(const Duration(milliseconds: 200), () => "1")
+                .then((value) => setState(() {
+                      hideWebView = false;
+                    }))
+          }
+      },
       drawer: Drawer(
         width: 250,
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
-                const DrawerHeader(
-                  child: Text(
-                    'Rooms',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
+                const SizedBox(
+                  height: 100,
+                  child: DrawerHeader(
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                    ),
+                    child: Text(
+                      'Rooms',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
                     ),
                   ),
                 ),
@@ -177,16 +204,9 @@ class _MyPageState extends State<MyPage> {
                         //     mainAxisAlignment: MainAxisAlignment.start,
                         //   children: const <Widget>[ Icon(Icons.edit),SizedBox(width: 1.0),Icon(Icons.meeting_room) ],
                         // ),
-
                         onTap: () async {
-                          setState(() {
-                            hideWebView = true;
-                          });
                           Navigator.pop(context);
                           inputMeetingAndName(room);
-                          setState(() {
-                            hideWebView = true;
-                          });
                         },
                       ))
                   .toList() +
@@ -204,9 +224,9 @@ class _MyPageState extends State<MyPage> {
                   title: const Text('Set User Name'),
                   subtitle: Text('$_prefix $userName'),
                   onTap: () async {
-                    setState(() {
-                      hideWebView = true;
-                    });
+                    String selectedOption = _selectedOption;
+                    String prefix = _prefix;
+
                     await showDialog(
                       context: context,
                       builder: (BuildContext context) {
@@ -222,32 +242,26 @@ class _MyPageState extends State<MyPage> {
                                   RadioListTile(
                                     title: const Text('F2F'),
                                     value: 'F2F',
-                                    groupValue: _selectedOption,
+                                    groupValue: selectedOption,
                                     toggleable: true,
                                     dense: true,
                                     onChanged: (value) {
                                       setState(() {
-                                        _selectedOption = value ?? "None";
-                                        _prefix = _prefix != '[F]' ? '[F]' : "";
-                                        PreferencesManager.prefix = _prefix;
-                                        PreferencesManager.selectedOption =
-                                            _selectedOption;
+                                        selectedOption = value ?? "None";
+                                        prefix = prefix != '[F]' ? '[F]' : "";
                                       });
                                     },
                                   ),
                                   RadioListTile(
                                     title: const Text('Remote'),
                                     value: 'Remote',
-                                    groupValue: _selectedOption,
+                                    groupValue: selectedOption,
                                     toggleable: true,
                                     dense: true,
                                     onChanged: (value) {
                                       setState(() {
-                                        _selectedOption = value ?? "None";
-                                        _prefix = _prefix != '[R]' ? '[R]' : "";
-                                        PreferencesManager.prefix = _prefix;
-                                        PreferencesManager.selectedOption =
-                                            _selectedOption;
+                                        selectedOption = value ?? "None";
+                                        prefix = prefix != '[R]' ? '[R]' : "";
                                       });
                                     },
                                   ),
@@ -257,7 +271,7 @@ class _MyPageState extends State<MyPage> {
                                     decoration: InputDecoration(
                                       labelText: "User Name",
                                       hintText: "Enter your user name",
-                                      prefixText: _prefix,
+                                      prefixText: prefix,
                                     ),
                                     onFieldSubmitted: (value) {
                                       setState(() {
@@ -275,6 +289,11 @@ class _MyPageState extends State<MyPage> {
                                     setState(() {
                                       userName = userNameController.text;
                                       PreferencesManager.userName = userName;
+                                      _prefix = prefix;
+                                      _selectedOption = selectedOption;
+                                      PreferencesManager.prefix = _prefix;
+                                      PreferencesManager.selectedOption =
+                                          _selectedOption;
                                     });
                                     Navigator.pop(context);
                                   },
@@ -291,9 +310,7 @@ class _MyPageState extends State<MyPage> {
                         );
                       },
                     );
-                    setState(() {
-                      hideWebView = false;
-                    });
+                    setState(() {});
                   },
                 ),
                 ListTile(
@@ -307,9 +324,6 @@ class _MyPageState extends State<MyPage> {
                   ),
                   title: const Text('Set meeting room ID'),
                   onTap: () async {
-                    setState(() {
-                      hideWebView = true;
-                    });
                     List<MeetingRoom>? updatedRooms = await Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -321,13 +335,8 @@ class _MyPageState extends State<MyPage> {
                       setState(() {
                         rooms = updatedRooms;
                         PreferencesManager.rooms = rooms;
-                        hideWebView = false;
                       });
-                    } else {
-                      setState(() {
-                        hideWebView = false;
-                      });
-                    }
+                    } else {}
                   },
                 ),
                 ListTile(
@@ -335,9 +344,6 @@ class _MyPageState extends State<MyPage> {
                     title: const Text('Set to Default'),
                     subtitle: const Text('Name and Rooms'),
                     onTap: () {
-                      setState(() {
-                        hideWebView = true;
-                      });
                       _showConfirmationDialog();
                     }),
                 const Divider(),
@@ -371,54 +377,114 @@ class _MyPageState extends State<MyPage> {
                   //     value: _progress / 100,
                   //   ),
                   // ),
-                  Visibility(
-                    visible: !hideWebView,
-                    child: Expanded(
-                        child: Stack(children: [
-                      tohruWebView.getWebView(),
-                      if (_isLoading)
-                        const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                    ])),
+                  Expanded(
+                    child: Visibility(
+                        visible: !hideWebView,
+                        child: tohruWebView.getWebView()),
                   ),
                 ],
               )),
         ),
       ),
 
-      bottomNavigationBar: BottomNavigationBar(
-        //has to be larger than 2
-        items: <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: handStatus == Hand.raised
-                ? const Icon(Icons.person)
-                : handStatus == Hand.lowered
-                    ? const Icon(Icons.front_hand)
-                    : const Icon(Icons.do_disturb_on_outlined),
-            label: handStatus == Hand.raised
-                ? "Lower Hand"
-                : handStatus == Hand.lowered
-                    ? "Raise Hand"
-                    : "Not in Room",
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.refresh),
-            label: 'Refresh',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.meeting_room),
-            label: 'Rooms',
-          ),
-        ],
+      bottomNavigationBar: BottomAppBar(
+        height: 85,
+        color: Colors.white,
+        shape: const CircularNotchedRectangle(),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 12.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              SizedBox(
+                width: 60,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    IconButton(
+                      icon: handStatus == Hand.raised
+                          ? const Icon(Icons.person)
+                          : handStatus == Hand.lowered
+                              ? const Icon(Icons.front_hand)
+                              : const Icon(Icons.do_disturb_on_outlined),
+                      iconSize: 24,
+                      onPressed: () {
+                        _onItemTapped(0);
+                      },
+                    ),
+                    FittedBox(
+                      fit: BoxFit.contain,
+                      child: handStatus == Hand.raised
+                          ? const Text(
+                              "Lower Hand",
+                              textAlign: TextAlign.center,
+                            )
+                          : handStatus == Hand.lowered
+                              ? const Text(
+                                  "Raise Hand",
+                                  textAlign: TextAlign.center,
+                                )
+                              : const Text(
+                                  "Not in Room",
+                                  textAlign: TextAlign.center,
+                                ),
+                    )
+                  ],
+                ),
+              ),
+              SizedBox(
+                width: 60,
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: Colors.red))
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.refresh),
+                            iconSize: 24,
+                            onPressed: () {
+                              _onItemTapped(1);
+                            },
+                          ),
+                          const FittedBox(
+                              fit: BoxFit.contain,
+                              child: Text(
+                                "Refresh",
+                                textAlign: TextAlign.center,
+                                textScaleFactor: 0.8,
+                              )),
+                        ],
+                      ),
+              ),
+              SizedBox(
+                width: 60,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  //reduce gap between items
 
-        currentIndex: _selectedIndex,
-        onTap: (index) async {
-          await _onItemTapped(index);
-          setState(() => _selectedIndex = 0);
-        },
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.grey,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.meeting_room),
+                      iconSize: 24,
+                      onPressed: () {
+                        _onItemTapped(2);
+                      },
+                    ),
+                    const FittedBox(
+                      fit: BoxFit.contain,
+                      child: Text(
+                        "Rooms",
+                        textAlign: TextAlign.center,
+                        textScaleFactor: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -485,12 +551,9 @@ class _MyPageState extends State<MyPage> {
       if (confirmed == true) {
         setState(() {
           _initDefaultValues();
-          hideWebView = false;
         });
       } else {
-        setState(() {
-          hideWebView = false;
-        });
+        setState(() {});
       }
     });
   }
@@ -619,6 +682,7 @@ class _MyPageState extends State<MyPage> {
         break;
       case 2: // Room ID
         scaffoldKey.currentState?.openDrawer();
+
         break;
     }
   }
