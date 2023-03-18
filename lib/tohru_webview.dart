@@ -1,14 +1,21 @@
 import 'package:flutter/foundation.dart';
+import 'package:tohru_client_3gpp/main.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class TohruWebView {
   static final TohruWebView _instance = TohruWebView._(); //Singletone
-  static const String tohruURL = 'https://tohru.3gpp.org';
+  // String tohruURL = 'https://www.google.com';
+  String tohruURL = 'about:blank';
+  // String tohruURL = '/';
+
   late final Function(int) onProgress;
   late final Function(String) onPageStarted;
   late final Function(String) onPageFinished;
   late final WebViewController webViewController;
+
+  late final WebViewWidget webViewWidget;
 
   factory TohruWebView({
     required Function(int) onProgress,
@@ -46,15 +53,16 @@ class TohruWebView {
       },
       onWebResourceError: (WebResourceError error) {},
       onNavigationRequest: (NavigationRequest request) {
-        if (!request.url.startsWith(tohruURL)) {
-          if (kDebugMode) {
-            print("Not tohru. Stop to URL");
-          }
+        printDebug("[onNavigationRequest] Check URL in onNavigationRequest");
+
+        if (!request.url.contains("tohru") &&
+            !request.url.contains("about:blank") &&
+            !request.url.contains("hand") &&
+            !request.url.contains("rasi")) {
+          printDebug("Not tohru. Stop to URL");
           return NavigationDecision.prevent;
         }
-        if (kDebugMode) {
-          print("It is tohru. go to URL");
-        }
+        printDebug("It is tohru. go to URL");
         return NavigationDecision.navigate;
       },
     );
@@ -64,10 +72,46 @@ class TohruWebView {
       ..setNavigationDelegate(navDelegate)
       ..setBackgroundColor(Colors.white)
       ..loadRequest(Uri.parse(tohruURL));
+
+    webViewWidget = WebViewWidget(controller: webViewController);
+  }
+
+  //getter of webViewWidget
+  WebViewWidget getWebViewWidget() {
+    return webViewWidget;
   }
 
   Future<void> loadRequest(Uri url) async {
     webViewController.loadRequest(url);
+  }
+
+  // method for getting URL and load the URL
+  Future<void> loadUrl(String url) async {
+    if (url.startsWith('about:')) {
+      tohruURL = url;
+      loadRequest(Uri.parse(tohruURL));
+      return;
+    }
+
+    String scheme = 'https';
+    tohruURL = '$scheme://$url';
+
+    try {
+      final uri = Uri.parse(tohruURL);
+
+      // Check if HTTPS is available
+      final response = await http.head(Uri.https(uri.host, uri.path));
+      if (response.statusCode != 200) {
+        // HTTPS didn't work, use HTTP instead
+        scheme = 'http';
+      }
+    } catch (e) {
+      // Invalid URL or HTTPS didn't work - use HTTP instead
+      scheme = 'http';
+    }
+
+    tohruURL = '$scheme://$url';
+    loadRequest(Uri.parse(tohruURL));
   }
 
   Future<Object> runJavaScriptReturningResult(String javascript) async {
@@ -88,5 +132,9 @@ class TohruWebView {
 
   void setNavigationDelegate(NavigationDelegate delegate) {
     webViewController.setNavigationDelegate(delegate);
+  }
+
+  Future<void> reload() async {
+    webViewController.reload();
   }
 }

@@ -33,6 +33,12 @@ class PreferencesManager {
     _prefs.setString('userName', value);
   }
 
+  static String get url => _prefs.getString('url') ?? 'about:blank';
+
+  static set url(String value) {
+    _prefs.setString('url', value);
+  }
+
   static String get prefix => _prefs.getString('_prefix') ?? '[F]';
 
   static set prefix(String value) {

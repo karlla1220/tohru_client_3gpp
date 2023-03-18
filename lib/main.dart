@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'tohru_webview.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'tohru.dart';
 import 'preference_manager.dart';
@@ -59,23 +58,25 @@ class _MyPageState extends State<MyPage> {
   String userName = "";
   String _prefix = "";
   String _selectedOption = "";
-  //==========================================================================
+  String url = "";
 
+  //==========================================================================
   void _saveAll() {
     PreferencesManager.prefix = _prefix;
     PreferencesManager.selectedOption = _selectedOption;
     PreferencesManager.userName = userName;
     PreferencesManager.rooms = rooms;
+    PreferencesManager.url = url;
   }
 
   @override
   void dispose() {
     printDebug("Perfrom Dispose on main widget!!!");
     // if (handStatus == Hand.raised) {
-    //   webViewController.runJavaScript("MainScreen.down();");
+    //   webViewClass.runJavaScript("MainScreen.down();");
     // }
     // waitPageChangedByHand([Hand.noHand, Hand.lowered]).then(
-    //   (_) => webViewController.runJavaScript('MainScreen.logOut();'),
+    //   (_) => webViewClass.runJavaScript('MainScreen.logOut();'),
     // );
     _saveAll();
 
@@ -83,13 +84,15 @@ class _MyPageState extends State<MyPage> {
     super.dispose();
   }
 
-  late final WebViewController webViewController;
+  late final TohruWebView webViewClass;
 
   void _loadAll() {
     userName = PreferencesManager.userName;
     _prefix = PreferencesManager.prefix;
     _selectedOption = PreferencesManager.selectedOption;
     rooms = PreferencesManager.rooms;
+    url = PreferencesManager.url;
+    printDebug(url);
   }
 
   void _initDefaultValues() {
@@ -102,11 +105,7 @@ class _MyPageState extends State<MyPage> {
     printDebug("Perfrom init on main widget!!!");
 
     super.initState();
-    PreferencesManager.init().then((_) {
-      _loadAll();
-    });
-
-    webViewController = TohruWebView(
+    webViewClass = TohruWebView(
       onProgress: (int progress) {
         // Update loading bar.
         setState(() {
@@ -120,7 +119,25 @@ class _MyPageState extends State<MyPage> {
       },
       onPageFinished: (String url) async {
         // Set true if the page finished loading.
-        printDebug("Finish to load Webpage");
+        printDebug("Finish to load Webpage of $url");
+
+        //if url is about:blank, finsih to load
+        if (url == "about:blank") {
+          setState(() => {_isLoading = false});
+          return;
+        }
+
+        //if url is not about:blank, wait to load
+
+        //if url does not contain "tohru or hand or raise", finsih to load
+
+        if (!url.contains("tohru") &&
+            !url.contains("hand") &&
+            !url.contains("raise")) {
+          setState(() => {_isLoading = false});
+          return;
+        }
+
         printDebug("Start to wait to ajax load");
         LoadingState currentPage = await waitTohruLoading(
           target: LoadingState.loadingScreen,
@@ -139,7 +156,11 @@ class _MyPageState extends State<MyPage> {
           );
         }
       },
-    ).webViewController;
+    );
+
+    PreferencesManager.init().then((_) {
+      _loadAll();
+    }).then((_) => webViewClass.loadUrl(url));
 
     printDebug("End init on main widget!!!");
   }
@@ -167,7 +188,7 @@ class _MyPageState extends State<MyPage> {
                   ),
                   Expanded(
                       child: Stack(children: [
-                    WebViewWidget(controller: webViewController),
+                    webViewClass.getWebViewWidget(),
                     if (_isLoading)
                       const Center(
                         child: CircularProgressIndicator(),
@@ -182,7 +203,7 @@ class _MyPageState extends State<MyPage> {
           padding: EdgeInsets.zero,
           children: const <Widget>[
                 SizedBox(
-                  height: 130,
+                  height: 120,
                   child: DrawerHeader(
                     decoration: BoxDecoration(
                       color: Colors.black,
@@ -221,6 +242,74 @@ class _MyPageState extends State<MyPage> {
                     children: const <Widget>[
                       Icon(Icons.edit),
                       SizedBox(width: 8.0),
+                      Icon(Icons.public),
+                    ],
+                  ),
+                  title: const Text('Set URL'),
+                  subtitle: Text(url),
+                  onTap: () async {
+                    await showDialog(
+                      context: context,
+                      builder: (BuildContext context) {
+                        final urlTextController =
+                            TextEditingController(text: url);
+                        return AlertDialog(
+                          icon: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.public),
+                              Icon(Icons.front_hand),
+                            ],
+                          ),
+                          title: const Text("Set URL"),
+                          content: TextFormField(
+                            controller: urlTextController,
+                            autofocus: true,
+                            decoration: const InputDecoration(
+                              labelText: "URL",
+                              hintText: "Enter tohru URL",
+                              prefix: Text('https://'),
+                            ),
+                            onFieldSubmitted: (value) {
+                              setState(() {
+                                url = value;
+                                PreferencesManager.url = url;
+                              });
+                              webViewClass.loadUrl(url);
+                              Navigator.pop(context);
+                            },
+                          ),
+                          actions: <Widget>[
+                            ElevatedButton(
+                              child: const Text("Set"),
+                              onPressed: () {
+                                setState(() {
+                                  url = urlTextController.text;
+                                  PreferencesManager.url = url;
+                                });
+                                webViewClass.loadUrl(url);
+                                Navigator.pop(context);
+                              },
+                            ),
+                            TextButton(
+                              child: const Text("Cancel"),
+                              onPressed: () {
+                                Navigator.pop(context);
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    );
+                    setState(() {});
+                  },
+                ),
+                ListTile(
+                  leading: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const <Widget>[
+                      Icon(Icons.edit),
+                      SizedBox(width: 8.0),
                       Icon(Icons.person),
                     ],
                   ),
@@ -230,6 +319,9 @@ class _MyPageState extends State<MyPage> {
                     await showDialog(
                       context: context,
                       builder: (BuildContext context) {
+                        String prefix = _prefix;
+                        String selectedOption = _selectedOption;
+
                         final userNameController =
                             TextEditingController(text: userName);
                         return StatefulBuilder(
@@ -242,32 +334,26 @@ class _MyPageState extends State<MyPage> {
                                   RadioListTile(
                                     title: const Text('F2F'),
                                     value: 'F2F',
-                                    groupValue: _selectedOption,
+                                    groupValue: selectedOption,
                                     toggleable: true,
                                     dense: true,
                                     onChanged: (value) {
                                       setState(() {
-                                        _selectedOption = value ?? "None";
-                                        _prefix = _prefix != '[F]' ? '[F]' : "";
-                                        PreferencesManager.prefix = _prefix;
-                                        PreferencesManager.selectedOption =
-                                            _selectedOption;
+                                        selectedOption = value ?? "None";
+                                        prefix = prefix != '[F]' ? '[F]' : "";
                                       });
                                     },
                                   ),
                                   RadioListTile(
                                     title: const Text('Remote'),
                                     value: 'Remote',
-                                    groupValue: _selectedOption,
+                                    groupValue: selectedOption,
                                     toggleable: true,
                                     dense: true,
                                     onChanged: (value) {
                                       setState(() {
-                                        _selectedOption = value ?? "None";
-                                        _prefix = _prefix != '[R]' ? '[R]' : "";
-                                        PreferencesManager.prefix = _prefix;
-                                        PreferencesManager.selectedOption =
-                                            _selectedOption;
+                                        selectedOption = value ?? "None";
+                                        prefix = prefix != '[R]' ? '[R]' : "";
                                       });
                                     },
                                   ),
@@ -277,11 +363,17 @@ class _MyPageState extends State<MyPage> {
                                     decoration: InputDecoration(
                                       labelText: "User Name",
                                       hintText: "Enter your user name",
-                                      prefixText: _prefix,
+                                      prefixText: prefix,
                                     ),
                                     onFieldSubmitted: (value) {
                                       setState(() {
                                         userName = value;
+                                        PreferencesManager.userName = userName;
+                                        _prefix = prefix;
+                                        _selectedOption = selectedOption;
+                                        PreferencesManager.prefix = prefix;
+                                        PreferencesManager.selectedOption =
+                                            selectedOption;
                                       });
                                       Navigator.pop(context);
                                     },
@@ -295,6 +387,11 @@ class _MyPageState extends State<MyPage> {
                                     setState(() {
                                       userName = userNameController.text;
                                       PreferencesManager.userName = userName;
+                                      _prefix = prefix;
+                                      _selectedOption = selectedOption;
+                                      PreferencesManager.prefix = prefix;
+                                      PreferencesManager.selectedOption =
+                                          selectedOption;
                                     });
                                     Navigator.pop(context);
                                   },
@@ -406,10 +503,10 @@ class _MyPageState extends State<MyPage> {
       //Do nothing. "setState()" already done in applyMeetingRoomStatus();
     } else if (handStatus != Hand.noHand) {
       if (handStatus == Hand.raised) {
-        webViewController.runJavaScript("MainScreen.down();");
+        webViewClass.runJavaScript("MainScreen.down();");
         await waitPageChangedByHand([Hand.lowered]);
       }
-      webViewController
+      webViewClass
           .runJavaScript('MainScreen.logOut();')
           .then(
             // wait until screen change
@@ -476,11 +573,11 @@ class _MyPageState extends State<MyPage> {
       if (currentMeetingRoom != emptyRoom) {
         if (currentMeetingRoom != room) {
           if (handStatus == Hand.raised) {
-            webViewController.runJavaScript("MainScreen.down();");
+            webViewClass.runJavaScript("MainScreen.down();");
             await waitPageChangedByHand([Hand.lowered]);
           }
 
-          await webViewController.runJavaScript('MainScreen.logOut();');
+          await webViewClass.runJavaScript('MainScreen.logOut();');
           //wait logout finish
           await waitTohruLoading(target: LoadingState.loginWindow);
           await waitPageChangedByHand([Hand.noHand]);
@@ -496,7 +593,7 @@ class _MyPageState extends State<MyPage> {
       }
     }
     if (loginNecessary == true) {
-      await webViewController.runJavaScript('''
+      await webViewClass.runJavaScript('''
             document.getElementById("meetingfield").value ="${room.name}";
             document.getElementById("namefield").value ="$_prefix $userName";
             WelcomeScreen.join();
@@ -515,10 +612,12 @@ class _MyPageState extends State<MyPage> {
 
   Future<Hand> checkHandStatus() async {
     final results = await Future.wait([
-      webViewController.runJavaScriptReturningResult(
-          "Boolean(typeof registered === 'boolean' ? registered : false)"),
-      webViewController.runJavaScriptReturningResult(
-          "Boolean(typeof UserInfo?.hand?.raised === 'boolean' ? UserInfo?.hand?.raised : false)"),
+      webViewClass.runJavaScriptReturningResult("""
+          Boolean((typeof registered) === 'boolean' ? registered : false)
+          """),
+      webViewClass.runJavaScriptReturningResult("""
+          (typeof UserInfo !== 'undefined') && UserInfo.hand && typeof UserInfo.hand.raised === 'boolean' ? UserInfo.hand.raised : false;
+          """),
     ]);
     final bool registered = results[0] as bool;
     final bool handRaised = results[1] as bool;
@@ -571,12 +670,12 @@ class _MyPageState extends State<MyPage> {
           //
         } else {
           if (handStatus == Hand.lowered) {
-            webViewController.runJavaScript("MainScreen.raise('S');");
+            webViewClass.runJavaScript("MainScreen.raise('S');");
             waitPageChangedByHand([Hand.raised]).then(
               (_) => setState(() => handStatus = Hand.raised),
             );
           } else if (handStatus == Hand.raised) {
-            webViewController.runJavaScript("MainScreen.down();");
+            webViewClass.runJavaScript("MainScreen.down();");
             waitPageChangedByHand([Hand.lowered]).then(
               (_) => setState(() => handStatus = Hand.lowered),
             );
@@ -585,7 +684,7 @@ class _MyPageState extends State<MyPage> {
 
         break;
       case 1: // Refresh
-        webViewController.reload();
+        webViewClass.reload();
 
         break;
       case 2: // Room ID
@@ -598,7 +697,7 @@ class _MyPageState extends State<MyPage> {
     int totalTimeWaited = 0;
     const int maxWaitTime = 3000; // 3 seconds in milliseconds
     while (true) {
-      int buttonStatus = (await webViewController.runJavaScriptReturningResult(
+      int buttonStatus = (await webViewClass.runJavaScriptReturningResult(
         'document.getElementById("downbutton")?.children?.length ?? -1',
       ) as num)
           .toInt();
@@ -606,10 +705,9 @@ class _MyPageState extends State<MyPage> {
       if (targetHands.contains(Hand.noHand) && buttonStatus < 0) {
         break;
       } else {
-        bool isHandListLoaded =
-            await webViewController.runJavaScriptReturningResult(
-                    "(document.getElementById('speaker')?.textContent ?? 'LOADING...') !== 'LOADING...'")
-                as bool;
+        bool isHandListLoaded = await webViewClass.runJavaScriptReturningResult(
+                "(document.getElementById('speaker')?.textContent ?? 'LOADING...') !== 'LOADING...'")
+            as bool;
         if (isHandListLoaded) {
           if (targetHands.contains(Hand.lowered) && buttonStatus == 0) {
             break;
@@ -634,7 +732,7 @@ class _MyPageState extends State<MyPage> {
     const int maxWaitTime = 10000; // 10 seconds in milliseconds
     int origin = -1;
     while (true) {
-      origin = (await webViewController.runJavaScriptReturningResult(
+      origin = (await webViewClass.runJavaScriptReturningResult(
         'document.getElementById("origin")?.children?.length ?? -1',
       ) as num)
           .toInt();
