@@ -7,6 +7,7 @@ import 'tohru.dart';
 import 'preference_manager.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
