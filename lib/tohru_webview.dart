@@ -102,6 +102,15 @@ class TohruWebView {
     printDebug(cookies);
   }
 
+  Future<void> clearCookies() async {
+    webViewCookieManager.clearCookies();
+    final cookies = await runJavaScriptReturningResult(
+      'document.cookie',
+    );
+    printDebug("cookies : ");
+    printDebug(cookies);
+  }
+
   // method for getting URL and load the URL
   Future<void> loadUrl(String url) async {
     if (url.startsWith('about:')) {

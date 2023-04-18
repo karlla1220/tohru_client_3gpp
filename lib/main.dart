@@ -122,21 +122,21 @@ class _MyPageState extends State<MyPage> {
         printDebug("Finish to load Webpage of $url");
 
         //if url is about:blank, finsih to load
-        if (url == "about:blank") {
-          setState(() => {_isLoading = false});
-          return;
-        }
+        // if (url == "about:blank") {
+        //   setState(() => {_isLoading = false});
+        //   return;
+        // }
 
         //if url is not about:blank, wait to load
 
         //if url does not contain "tohru or hand or raise", finsih to load
 
-        if (!url.contains("tohru") &&
-            !url.contains("hand") &&
-            !url.contains("raise")) {
-          setState(() => {_isLoading = false});
-          return;
-        }
+        // if (!url.contains("tohru") &&
+        //     !url.contains("hand") &&
+        //     !url.contains("raise")) {
+        //   setState(() => {_isLoading = false});
+        //   return;
+        // }
 
         // printDebug("Start to wait to ajax load");
         // LoadingState currentPage = await waitTohruLoading(
@@ -479,7 +479,7 @@ class _MyPageState extends State<MyPage> {
                     leading: const Icon(Icons.exit_to_app),
                     title: const Text('Clear cache and cookies'),
                     onTap: () {
-                      webViewClass.clearCacheAndCookies();
+                      webViewClass.clearCookies();
                       Navigator.pop(context);
                     }),
               ],
