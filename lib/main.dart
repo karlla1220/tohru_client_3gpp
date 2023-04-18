@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:core';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'tohru_webview.dart';
@@ -138,23 +138,24 @@ class _MyPageState extends State<MyPage> {
           return;
         }
 
-        printDebug("Start to wait to ajax load");
-        LoadingState currentPage = await waitTohruLoading(
-          target: LoadingState.loadingScreen,
-        );
-        printDebug("end to wait to load ");
+        // printDebug("Start to wait to ajax load");
+        // LoadingState currentPage = await waitTohruLoading(
+        //   target: LoadingState.loadingScreen,
+        // );
         setState(() {
           _isLoading = false;
         });
-        if (currentPage == LoadingState.inRoom) {
-          waitPageChangedByHand([Hand.lowered, Hand.raised]).then(
-            (_) => applyMeetingRoomStatus(),
-          );
-        } else {
-          waitPageChangedByHand([Hand.noHand]).then(
-            (_) => applyMeetingRoomStatus(),
-          );
-        }
+        printDebug("end to wait to load ");
+
+        // if (currentPage == LoadingState.inRoom) {
+        //   waitPageChangedByHand([Hand.lowered, Hand.raised]).then(
+        //     (_) => applyMeetingRoomStatus(),
+        //   );
+        // } else {
+        //   waitPageChangedByHand([Hand.noHand]).then(
+        //     (_) => applyMeetingRoomStatus(),
+        //   );
+        // }
       },
     );
 
@@ -321,6 +322,8 @@ class _MyPageState extends State<MyPage> {
                       builder: (BuildContext context) {
                         String prefix = _prefix;
                         String selectedOption = _selectedOption;
+                        bool isF2F = _selectedOption == "F2F";
+                        bool isRemote = _selectedOption == "Remote";
 
                         final userNameController =
                             TextEditingController(text: userName);
@@ -331,29 +334,43 @@ class _MyPageState extends State<MyPage> {
                               content: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  RadioListTile(
+                                  CheckboxListTile(
                                     title: const Text('F2F'),
-                                    value: 'F2F',
-                                    groupValue: selectedOption,
-                                    toggleable: true,
+                                    value: isF2F,
+                                    // groupValue: selectedOption,
+                                    // toggleable: true,
                                     dense: true,
                                     onChanged: (value) {
                                       setState(() {
-                                        selectedOption = value ?? "None";
-                                        prefix = prefix != '[F]' ? '[F]' : "";
+                                        isF2F = value!;
+                                        if (value == true) {
+                                          isRemote = false;
+                                          selectedOption = "F2F";
+                                          prefix = "[F]";
+                                        } else {
+                                          selectedOption = "None";
+                                          prefix = "";
+                                        }
                                       });
                                     },
                                   ),
-                                  RadioListTile(
+                                  CheckboxListTile(
                                     title: const Text('Remote'),
-                                    value: 'Remote',
-                                    groupValue: selectedOption,
-                                    toggleable: true,
+                                    value: isRemote,
+                                    // groupValue: selectedOption,
+                                    // toggleable: true,
                                     dense: true,
                                     onChanged: (value) {
                                       setState(() {
-                                        selectedOption = value ?? "None";
-                                        prefix = prefix != '[R]' ? '[R]' : "";
+                                        isRemote = value!;
+                                        if (value == true) {
+                                          isF2F = false;
+                                          selectedOption = "Remote";
+                                          prefix = "[R]";
+                                        } else {
+                                          selectedOption = "None";
+                                          prefix = "";
+                                        }
                                       });
                                     },
                                   ),
@@ -457,6 +474,14 @@ class _MyPageState extends State<MyPage> {
                         Navigator.pop(context);
                       }),
                 ),
+                const Divider(),
+                ListTile(
+                    leading: const Icon(Icons.exit_to_app),
+                    title: const Text('Clear cache and cookies'),
+                    onTap: () {
+                      webViewClass.clearCacheAndCookies();
+                      Navigator.pop(context);
+                    }),
               ],
         ),
       ),

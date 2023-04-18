@@ -14,6 +14,7 @@ class TohruWebView {
   late final Function(String) onPageStarted;
   late final Function(String) onPageFinished;
   late final WebViewController webViewController;
+  late final WebViewCookieManager webViewCookieManager;
 
   late final WebViewWidget webViewWidget;
 
@@ -73,6 +74,8 @@ class TohruWebView {
       ..setBackgroundColor(Colors.white)
       ..loadRequest(Uri.parse(tohruURL));
 
+    webViewCookieManager = WebViewCookieManager();
+
     webViewWidget = WebViewWidget(controller: webViewController);
   }
 
@@ -83,6 +86,20 @@ class TohruWebView {
 
   Future<void> loadRequest(Uri url) async {
     webViewController.loadRequest(url);
+  }
+
+  Future<void> clearCache() async {
+    webViewController.clearCache();
+  }
+
+  Future<void> clearCacheAndCookies() async {
+    webViewCookieManager.clearCookies();
+    webViewController.clearCache();
+    final cookies = await runJavaScriptReturningResult(
+      'document.cookie',
+    );
+    printDebug("cookies : ");
+    printDebug(cookies);
   }
 
   // method for getting URL and load the URL
